@@ -232,6 +232,10 @@ def _branch_run(root, run_id, hm, kinds, verdict=None, **spec_extra):
 @pytest.fixture
 def branch_client(tmp_path, monkeypatch):
     root = tmp_path / "runs"
+    # keep the suite hermetic: the branches route prefers live GitHub branch
+    # facts; None falls back to the repos.json fixtures these tests assert
+    monkeypatch.setattr("atlas.api.github_auth.github_branch_facts",
+                        lambda name: None)
     # opt-sampling: an old pass, then a newer regression — newest wins.
     _branch_run(root, "r_hero0", "15:00", ["submitted", "report_ready"],
                 verdict={"verdict": "pass", "checks": []},
