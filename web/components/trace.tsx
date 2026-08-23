@@ -249,7 +249,36 @@ export function Trace({ events }: { events: InfervalEvent[] }) {
   const groups = groupByPhase(events);
   const viewportRef = useRef<HTMLDivElement>(null);
   const previousCountRef = useRef(events.length);
+  const previousScrollTopRef = useRef(0);
+  const cooldownUntilRef = useRef(0);
+  const cooldownTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [following, setFollowing] = useState(true);
+
+  const pauseFollowing = () => {
+    const cooldownMs = 6_000;
+    cooldownUntilRef.current = Date.now() + cooldownMs;
+    setFollowing(false);
+
+    if (cooldownTimerRef.current) clearTimeout(cooldownTimerRef.current);
+    cooldownTimerRef.current = setTimeout(() => {
+      cooldownTimerRef.current = null;
+      const viewport = viewportRef.current;
+      if (!viewport) return;
+
+      const distanceFromBottom =
+        viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight;
+      // A small upward nudge resumes after the cooldown. If the reader moved
+      // farther back in the trace, stay paused until they return or tap Latest.
+      if (distanceFromBottom < 56) setFollowing(true);
+    }, cooldownMs);
+  };
+
+  useEffect(
+    () => () => {
+      if (cooldownTimerRef.current) clearTimeout(cooldownTimerRef.current);
+    },
+    [],
+  );
 
   useEffect(() => {
     const previousCount = previousCountRef.current;
@@ -267,6 +296,9 @@ export function Trace({ events }: { events: InfervalEvent[] }) {
   const jumpToLatest = () => {
     const viewport = viewportRef.current;
     if (!viewport) return;
+    cooldownUntilRef.current = 0;
+    if (cooldownTimerRef.current) clearTimeout(cooldownTimerRef.current);
+    cooldownTimerRef.current = null;
     setFollowing(true);
     viewport.scrollTo({ top: viewport.scrollHeight, behavior: "smooth" });
   };
@@ -277,9 +309,19 @@ export function Trace({ events }: { events: InfervalEvent[] }) {
         ref={viewportRef}
         onScroll={(event) => {
           const viewport = event.currentTarget;
+          const movingUp = viewport.scrollTop < previousScrollTopRef.current - 1;
+          previousScrollTopRef.current = viewport.scrollTop;
+
+          if (movingUp) {
+            pauseFollowing();
+            return;
+          }
+
           const distanceFromBottom =
             viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight;
-          setFollowing(distanceFromBottom < 56);
+          if (Date.now() >= cooldownUntilRef.current) {
+            setFollowing(distanceFromBottom < 56);
+          }
         }}
         className="max-h-[min(68vh,760px)] space-y-1 overflow-y-auto scroll-smooth pr-2"
       >
