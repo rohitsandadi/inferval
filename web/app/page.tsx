@@ -7,7 +7,7 @@ import { useMemo, useState } from "react";
 import { useQueries, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Search } from "lucide-react";
+import { Plus, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -20,7 +20,9 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { ConnectRepoDialog } from "@/components/connect-repo-dialog";
+import { AppTopbar } from "@/components/app-topbar";
 import { Brand } from "@/components/brand";
+import { GitHubMark } from "@/components/github-mark";
 import { StatusDot } from "@/components/status-dot";
 import { Delta } from "@/components/atoms";
 import {
@@ -123,38 +125,50 @@ export default function HomePage() {
 
   return (
     <div className="flex min-h-dvh flex-col">
-      <header className="flex min-h-16 items-center justify-between gap-4 border-b border-border-soft bg-sidebar px-6 py-3">
-        <Brand />
-        <div className="flex items-center gap-2">
-          <div className="relative">
-            <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-faint" />
-            <Input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search repos…"
-              className="h-9 w-64 pl-9 text-sm"
-            />
-          </div>
-          {gh?.connected && (
-            <StatusDot state="ok" label={gh.login ?? "connected"} />
-          )}
-          {gh !== null && !gh.connected && !isMock && (
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => {
-                const url = githubLoginUrl();
-                if (url) window.location.href = url;
-              }}
-            >
-              Connect GitHub
+      <AppTopbar
+        actions={
+          <>
+            {gh === null ? (
+              <Skeleton className="h-8 w-32 rounded-lg" />
+            ) : gh.connected ? (
+              <div
+                className="inline-flex h-8 items-center gap-2 rounded-lg border border-border bg-card px-3 text-xs"
+                title="GitHub connected"
+              >
+                <GitHubMark className="text-foreground" />
+                <span className="font-medium">GitHub</span>
+                <span className="max-w-28 truncate text-muted-foreground">
+                  {gh.login ? `@${gh.login.replace(/^@/, "")}` : "connected"}
+                </span>
+                <i className="size-1.5 rounded-full bg-ok" aria-hidden />
+              </div>
+            ) : !isMock ? (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  const url = githubLoginUrl();
+                  if (url) window.location.href = url;
+                }}
+              >
+                <GitHubMark data-icon="inline-start" />
+                Connect GitHub
+              </Button>
+            ) : (
+              <div className="inline-flex h-8 items-center gap-2 rounded-lg border border-border bg-card px-3 text-xs text-muted-foreground">
+                <GitHubMark />
+                Demo data
+              </div>
+            )}
+            <Button size="sm" onClick={() => setPickerOpen(true)}>
+              <Plus data-icon="inline-start" />
+              Connect repo
             </Button>
-          )}
-          <Button size="sm" onClick={() => setPickerOpen(true)}>
-            Connect repo
-          </Button>
-        </div>
-      </header>
+          </>
+        }
+      >
+        <Brand />
+      </AppTopbar>
       <ConnectRepoDialog
         open={pickerOpen}
         onOpenChange={setPickerOpen}
@@ -163,11 +177,23 @@ export default function HomePage() {
         onConnected={refreshRepos}
       />
       <main className="mx-auto w-full max-w-[1480px] flex-1 px-8 py-8 max-md:px-4">
-        <div className="mb-7">
-          <h1 className="text-2xl font-semibold tracking-tight">Repositories</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Runtime verification, reviews, and evaluation activity across your projects.
-          </p>
+        <div className="mb-7 flex items-end justify-between gap-5 max-sm:flex-col max-sm:items-stretch">
+          <div>
+            <h1 className="text-2xl font-semibold tracking-tight">Repositories</h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Runtime verification, reviews, and evaluation activity across your projects.
+            </p>
+          </div>
+          <div className="relative w-72 max-sm:w-full">
+            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-faint" />
+            <Input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search repositories…"
+              aria-label="Search repositories"
+              className="pl-10"
+            />
+          </div>
         </div>
         <div className="space-y-10">
           {visible === null || reposPending ? (

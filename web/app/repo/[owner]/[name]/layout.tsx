@@ -13,7 +13,9 @@ import {
 import { useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { AppTopbar } from "@/components/app-topbar";
 import { Brand } from "@/components/brand";
 import { NewReviewDialog } from "@/components/new-review-dialog";
 import { RepoSidebar } from "@/components/repo-sidebar";
@@ -87,10 +89,19 @@ export default function RepoLayout({
           workspace ? "h-dvh overflow-hidden" : "min-h-dvh",
         )}
       >
-        <header className="flex min-h-16 items-center justify-between gap-4 border-b border-border-soft bg-sidebar px-6 py-3">
+        <AppTopbar
+          actions={
+            topbarRight ?? (
+              <Button size="sm" onClick={() => openNewReview()}>
+                <Plus data-icon="inline-start" />
+                New review
+              </Button>
+            )
+          }
+        >
           <nav className="flex min-w-0 items-center gap-2.5 text-sm">
             <Brand className="mr-1" />
-            <span className="text-faint">/</span>
+            <span className="h-5 w-px shrink-0 bg-border" aria-hidden />
             <Link
               href={base}
               className={cn(
@@ -126,12 +137,7 @@ export default function RepoLayout({
               </span>
             ))}
           </nav>
-          {topbarRight ?? (
-            <Button size="sm" onClick={() => openNewReview()}>
-              New review
-            </Button>
-          )}
-        </header>
+        </AppTopbar>
         {/* The PR/session workspace is full-bleed: no sidebar, no padding. */}
         {workspace ? (
           <main className="flex min-h-0 min-w-0 flex-1 flex-col">
