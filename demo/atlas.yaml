@@ -1,0 +1,15 @@
+# Atlas repo contract for the nanoGPT demo fork.
+# Lives at the fork root; both branches contain it.
+image: atlas-torch-2.8.0        # pinned Modal image (see atlas/runner/images.py)
+gpu: A10G
+evals:
+  generate_short:
+    cmd: python /harness/bench.py --src {src} --eval generate_short --tokens 128 --batch 2 --repeats 5 --out {out}
+    checks: {tokens_per_s: "-10%", latency_ms_p95: "+15%", peak_vram_mb: "+8%"}
+    absolute: {latency_ms_p95: "<3000"}
+  generate_long:
+    cmd: python /harness/bench.py --src {src} --eval generate_long --tokens 512 --batch 2 --repeats 3 --out {out}
+    checks: {tokens_per_s: "-10%", latency_ms_p95: "+15%", peak_vram_mb: "+8%"}
+correctness: token_ids_match     # fixed seed + top_k=1 greedy => exact match
+overrides: [batch]               # legal probe switches
+approvals: manual                # probes wait for approval; "auto" skips

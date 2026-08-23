@@ -1,0 +1,13 @@
+diff --git a/model.py b/model.py
+index c698f8b..4569db4 100644
+--- a/model.py
++++ b/model.py
+@@ -302,7 +302,7 @@ class GPT(nn.Module):
+         mfu = flops_achieved / flops_promised
+         return mfu
+ 
+-    @torch.no_grad()
++    @torch.inference_mode()
+     def generate(self, idx, max_new_tokens, temperature=1.0, top_k=None):
+         """
+         Take a conditioning sequence of indices idx (LongTensor of shape (b,t)) and complete

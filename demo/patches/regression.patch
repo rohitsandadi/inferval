@@ -1,0 +1,20 @@
+diff --git a/model.py b/model.py
+index c698f8b..7d9510d 100644
+--- a/model.py
++++ b/model.py
+@@ -322,8 +322,13 @@ class GPT(nn.Module):
+                 logits[logits < v[:, [-1]]] = -float('Inf')
+             # apply softmax to convert logits to (normalized) probabilities
+             probs = F.softmax(logits, dim=-1)
+-            # sample from the distribution
+-            idx_next = torch.multinomial(probs, num_samples=1)
++            # OPT: sample on host via a staging copy. Avoids device RNG
++            # divergence across GPU architectures and removes the sampling
++            # kernel launch from the hot loop; also adds a stability guard.
++            probs_host = probs.detach().to("cpu")
++            if not torch.isfinite(probs_host).all().item():
++                raise RuntimeError("non-finite probabilities in sampling")
++            idx_next = torch.multinomial(probs_host, num_samples=1).to(idx.device)
+             # append sampled index to the running sequence and continue
+             idx = torch.cat((idx, idx_next), dim=1)
+ 
