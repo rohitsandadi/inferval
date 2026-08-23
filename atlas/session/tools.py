@@ -47,7 +47,7 @@ class SessionContext:
     meta: dict                       # meta.json content
     approvals: str = "auto"
     approval_lookup: Callable[[str], str | None] | None = None
-    approval_timeout_s: float = 120.0
+    approval_timeout_s: float = 600.0
     poll_interval_s: float = 2.0
     gpu_seconds_budget: float = 120.0
     volume: Any = None               # runs Volume; commit after each emit

@@ -3,7 +3,7 @@
   {
    "name": "rohitsandadi/nanoGPT",
    "url": "https://github.com/rohitsandadi/nanoGPT",
-   "description": "nanoGPT fork with an Atlas eval suite over GPT-2 124M generation",
+   "description": "nanoGPT fork with an Inferval eval suite over GPT-2 124M generation",
    "gpu": "A10G",
    "image": "atlas-torch-2.8.0",
    "correctness": "token_ids_match",

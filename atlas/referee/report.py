@@ -48,7 +48,7 @@ def build_report(verdict: dict, investigation: dict | None = None,
                 flagged.append(f"Proposed but not run: {p['kind']} — {p['reason']}")
 
     # PR comment
-    lines = [f"## Atlas: {v.upper()}", ""]
+    lines = [f"## Inferval: {v.upper()}", ""]
     lines += [f"- {s}" for s in summary]
     if checks:
         lines += ["", "**Measured (policy decision, not a model output):**", ""]

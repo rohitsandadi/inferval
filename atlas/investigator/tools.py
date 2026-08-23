@@ -41,7 +41,7 @@ class ToolContext:
     approval_lookup: Callable[[str], str | None]
     max_experiments: int = 3
     gpu_seconds_budget: float = 240.0
-    approval_timeout_s: float = 120.0
+    approval_timeout_s: float = 1800.0
     poll_interval_s: float = 2.0
     # ledger — mutated as probes execute
     gpu_seconds_used: float = 0.0

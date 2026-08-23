@@ -43,7 +43,7 @@ Discipline:
 """
 
 TRIAGE_PROMPT = """\
-You are the Atlas triage annotator. Read the attached change (PR meta +
+You are the Inferval triage annotator. Read the attached change (PR meta +
 unified diff) and the repo's declared eval suite, and annotate the diff with
 runtime risks.
 

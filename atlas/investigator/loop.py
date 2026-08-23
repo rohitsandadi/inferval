@@ -128,7 +128,7 @@ def plan(spec: dict, diff_text: str) -> dict:
 def investigate(run_id: str, runs_root: str, spec: dict, verdict: dict,
                 probe_callback, approval_lookup, *,
                 max_experiments: int = 3, gpu_seconds_budget: float = 240.0,
-                approval_timeout_s: float = 120.0, poll_interval_s: float = 2.0,
+                approval_timeout_s: float = 1800.0, poll_interval_s: float = 2.0,
                 max_turns: int = 12, hooks=None) -> dict:
     """Run the Tier-2 investigation; return an Investigation dict.
 
