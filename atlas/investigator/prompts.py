@@ -75,6 +75,21 @@ confidence is one of exactly those three strings. fix_context is for the
 coding agent that will attempt the fix.
 """
 
+BUDGET_NOTE = """
+Turn budget. You have at most {max_turns} model turns for the whole
+investigation; every tool call costs one, and so does each attempt at the
+final message. By turn {wrap_by}, stop gathering evidence and emit the final
+JSON conclusion, even if hypotheses remain inconclusive — a concluded
+investigation with honest gaps beats an exhausted one with nothing.
+"""
+
+
+def system_prompt(max_turns: int) -> str:
+    """SYSTEM_PROMPT plus the concrete turn budget, so the agent can pace
+    itself instead of discovering the ceiling by hitting it."""
+    return SYSTEM_PROMPT + BUDGET_NOTE.format(
+        max_turns=max_turns, wrap_by=max(2, max_turns - 4))
+
 PLAN_PROMPT = """\
 You are the Inferval run planner. Before any GPU time is spent, read the diff
 and the PR's claim and decide what this run should measure.

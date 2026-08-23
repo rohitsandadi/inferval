@@ -80,6 +80,8 @@ function summarize(e: InfervalEvent): string {
         bits.push(`claim ${d.claim_verified ? "verified" : "not verified"}`);
       return bits.join(" — ");
     }
+    case "tool_call":
+      return `turn ${str(d.turn)} · ${str(d.tool)} — ${str(d.result)}`;
     case "observation":
       return `${str(d.id)}: ${str(d.text)}`;
     case "hypothesis":

@@ -210,6 +210,11 @@ def probe_overrides(params: dict) -> dict:
 CONTROLLER_TIMEOUT_S = 3600
 WRAPUP_MARGIN_S = 900
 
+# Investigator turn ceiling. The prompt tells the agent this number so it can
+# pace itself; keep it modest — more turns is also more wall clock against
+# the wrap-up deadline above.
+INVESTIGATOR_MAX_TURNS = 20
+
 
 def investigate_or_survive(spec, verdict, sb, volume, emit,
                            approval_deadline=None) -> dict:
@@ -236,7 +241,8 @@ def investigate_or_survive(spec, verdict, sb, volume, emit,
         approvals = modal.Dict.from_name(DICT_APPROVALS, create_if_missing=True)
         return investigate(spec["run"], artifacts.runs_root(), spec, verdict,
                            probe, approvals.get,
-                           approval_deadline=approval_deadline)
+                           approval_deadline=approval_deadline,
+                           max_turns=INVESTIGATOR_MAX_TURNS)
     except Exception as e:
         return failed_investigation(spec["run"], f"{type(e).__name__}: {e}")
 

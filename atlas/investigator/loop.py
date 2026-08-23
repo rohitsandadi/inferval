@@ -17,7 +17,8 @@ from typing import Literal
 from pydantic import BaseModel
 
 from agents import (Agent, AgentOutputSchema, ModelSettings,
-                    OpenAIChatCompletionsModel, Runner, set_tracing_disabled)
+                    OpenAIChatCompletionsModel, RunHooks, Runner,
+                    set_tracing_disabled)
 from openai import AsyncOpenAI
 
 from atlas.contracts import names
@@ -36,6 +37,25 @@ DEFAULT_BASE_URL = "https://openrouter.ai/api/v1"
 
 class InvestigatorFailed(Exception):
     """Tier-2 died; Tier-1 must still publish (diagnosis: inconclusive)."""
+
+
+class TraceHooks(RunHooks):
+    """Log each completed tool call to events.jsonl as it happens, so a run
+    that dies mid-flight (e.g. MaxTurnsExceeded) still leaves a trace of
+    where the turns went. Gaps in the turn numbers are turns spent on
+    text-only responses — usually retries of an invalid final output."""
+
+    def __init__(self, runs_root: str, run_id: str):
+        self.runs_root, self.run_id = runs_root, run_id
+        self.turn = 0
+
+    async def on_llm_start(self, context, agent, system_prompt, input_items):
+        self.turn += 1
+
+    async def on_tool_end(self, context, agent, tool, result):
+        append_event(self.runs_root, self.run_id, "agent", "tool_call",
+                     {"turn": self.turn, "tool": tool.name,
+                      "result": str(result)[:200]})
 
 
 class ObservationOut(BaseModel):
@@ -143,14 +163,16 @@ def investigate(run_id: str, runs_root: str, spec: dict, verdict: dict,
                       approval_timeout_s=approval_timeout_s,
                       approval_deadline=approval_deadline,
                       poll_interval_s=poll_interval_s)
-    agent = Agent(name="atlas-investigator", instructions=prompts.SYSTEM_PROMPT,
+    agent = Agent(name="atlas-investigator",
+                  instructions=prompts.system_prompt(max_turns),
                   model=_model(), model_settings=ModelSettings(max_tokens=MAX_TOKENS),
                   tools=make_tools(ctx),
                   output_type=TolerantOutputSchema(InvestigationOut, strict_json_schema=False))
     task = build_context(run_id, runs_root) + \
         "\n\nInvestigate this run. Finish with the structured conclusion."
     try:
-        result = asyncio.run(Runner.run(agent, task, max_turns=max_turns, hooks=hooks))
+        result = asyncio.run(Runner.run(agent, task, max_turns=max_turns,
+                                        hooks=hooks or TraceHooks(runs_root, run_id)))
         out: InvestigationOut = result.final_output
     except Exception as e:
         raise InvestigatorFailed(f"investigation failed: {e}") from e
