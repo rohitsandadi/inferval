@@ -1,6 +1,6 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   getBranches,
   getEvents,
@@ -19,6 +19,7 @@ import {
   listSessions,
 } from "@/lib/api";
 import { statusFromEvents } from "@/lib/phases";
+import type { InfervalEvent } from "@/lib/types";
 
 export const queryKeys = {
   all: ["inferval"] as const,
@@ -89,9 +90,17 @@ export function useRunQuery(id: string, enabled = true) {
 }
 
 export function useEventsQuery(id: string) {
+  const queryClient = useQueryClient();
+  const queryKey = queryKeys.events(id);
+
   return useQuery({
-    queryKey: queryKeys.events(id),
-    queryFn: () => getEvents(id),
+    queryKey,
+    queryFn: async () => {
+      const current =
+        queryClient.getQueryData<InfervalEvent[]>(queryKey) ?? [];
+      const fresh = await getEvents(id, current.length);
+      return fresh.length > 0 ? [...current, ...fresh] : current;
+    },
     enabled: Boolean(id),
     refetchInterval: (query) => {
       const events = query.state.data;
@@ -136,9 +145,17 @@ export function useSessionDiffQuery(id: string) {
 }
 
 export function useSessionEventsQuery(id: string) {
+  const queryClient = useQueryClient();
+  const queryKey = queryKeys.sessionEvents(id);
+
   return useQuery({
-    queryKey: queryKeys.sessionEvents(id),
-    queryFn: () => getSessionEvents(id),
+    queryKey,
+    queryFn: async () => {
+      const current =
+        queryClient.getQueryData<InfervalEvent[]>(queryKey) ?? [];
+      const fresh = await getSessionEvents(id, current.length);
+      return fresh.length > 0 ? [...current, ...fresh] : current;
+    },
     enabled: Boolean(id),
     refetchInterval: 2_000,
   });

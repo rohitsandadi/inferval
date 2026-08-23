@@ -136,6 +136,11 @@ export default function SessionPage({
   const [activeFile, setActiveFile] = useState<string | null>(null);
   const [evalDialog, setEvalDialog] = useState<EvalPrefill | null>(null);
 
+  useEffect(() => {
+    if (events.length === 0) return;
+    queryClient.invalidateQueries({ queryKey: queryKeys.session(id) });
+  }, [events.length, id, queryClient]);
+
   // review_submitted -> fetch (and, while live, refresh) the linked runs
   const reviewRunIds = useMemo(
     () =>

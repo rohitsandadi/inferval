@@ -84,7 +84,9 @@ export default function ReviewPage({
   const { repo, branches, setCrumbs, setTopbarRight } = useRepoShell();
   const { data: detailData } = useRunQuery(id);
   const { data: eventsData = [] } = useEventsQuery(id);
-  const reportReady = eventsData.some((event) => event.kind === "report_ready");
+  const reportReady =
+    detailData?.status === "done" ||
+    eventsData.some((event) => event.kind === "report_ready");
   const { data: reportData } = useReportQuery(id, reportReady);
   const detail = detailData ?? null;
   const events = eventsData;
