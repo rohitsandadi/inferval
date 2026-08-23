@@ -4,9 +4,11 @@
 // origin, command, thresholds, and the last
 // five reviews' deltas per eval (oldest → newest, latest emphasized).
 
-import { use } from "react";
+import { use, useState } from "react";
 import { useQueries } from "@tanstack/react-query";
+import { X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
@@ -16,10 +18,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { NewEvalDialog } from "@/components/new-eval-dialog";
 import { useRepoShell } from "@/components/repo-shell";
 import { getRun } from "@/lib/api";
 import {
   queryKeys,
+  useDeleteEvalMutation,
+  useEvalsQuery,
   useRunsQuery,
 } from "@/lib/queries";
 import { fmtDelta } from "@/lib/format";
@@ -60,7 +65,8 @@ function deltaTone(
 }
 
 interface EvalRow extends EvalSpec {
-  origin: "seed";
+  origin?: "seed" | "manual" | { pr: number };
+  store?: boolean; // from the eval store -> removable
 }
 
 interface HistoryPoint {
@@ -79,6 +85,8 @@ export default function EvalsPage({
   const repoName = `${decodeURIComponent(owner)}/${decodeURIComponent(name)}`;
   const { repo } = useRepoShell();
 
+  const [dialogOpen, setDialogOpen] = useState(false);
+
   const { data: runs = [] } = useRunsQuery(repoName);
   const done = runs.filter((run) => run.verdict !== null).slice(0, HISTORY_N);
   const detailQueries = useQueries({
@@ -96,6 +104,22 @@ export default function EvalsPage({
     .slice()
     .reverse()
     .map((detail) => detail?.verdict?.checks ?? []);
+  // Store rows overlay everything else by name, mirroring the backend overlay.
+  const { data: stored = [] } = useEvalsQuery(repoName);
+  const deleteMutation = useDeleteEvalMutation(repoName);
+  const storeRows: EvalRow[] = stored.map((item) => {
+    const pr = item.origin?.match(/^pr:(\d+)$/);
+    return {
+      name: item.name,
+      cmd: item.cmd,
+      checks: item.checks,
+      absolute: item.absolute,
+      origin: pr ? { pr: Number(pr[1]) } : "manual",
+      store: true,
+    };
+  });
+  const storeNames = new Set(storeRows.map((evalSpec) => evalSpec.name));
+
   const specRows: EvalRow[] = (evals ?? []).map((evalSpec) => ({
     ...evalSpec,
     origin: "seed" as const,
@@ -107,7 +131,9 @@ export default function EvalsPage({
             ({ name: evalName, cmd: "", checks: {}, origin: "seed" }) as EvalRow,
         )
       : [];
-  const rows: EvalRow[] = [...specRows, ...fallbackRows];
+  const rows: EvalRow[] = [...specRows, ...fallbackRows]
+    .filter((evalSpec) => !storeNames.has(evalSpec.name))
+    .concat(storeRows);
 
   // One point per past review: the eval's primary metric (tokens/s when the
   // eval measures it, else its first measured check).
@@ -129,7 +155,7 @@ export default function EvalsPage({
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="font-mono text-[13px] text-faint">
           inferval.yaml @ {repo?.default_branch ?? "—"}
           {repo?.correctness ? ` · correctness: ${repo.correctness}` : ""}
@@ -137,6 +163,9 @@ export default function EvalsPage({
             ? ` · overrides: ${repo.overrides.join(", ")}`
             : ""}
         </p>
+        <Button size="sm" variant="outline" onClick={() => setDialogOpen(true)}>
+          New eval
+        </Button>
       </div>
 
       {evals === null ? (
@@ -159,6 +188,7 @@ export default function EvalsPage({
               <TableHead className="text-right text-[13px] font-normal text-faint">
                 Last
               </TableHead>
+              <TableHead className="w-8" />
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -169,7 +199,18 @@ export default function EvalsPage({
                 <TableRow key={e.name} className="border-border-soft hover:bg-transparent">
                   <TableCell className="font-mono text-xs">{e.name}</TableCell>
                   <TableCell>
-                    <span className="text-[13px] text-faint">seed</span>
+                    {typeof e.origin === "object" && e.origin !== null ? (
+                      <Badge
+                        variant="outline"
+                        className="rounded-full border-live/45 bg-live/10 font-mono text-[12px] text-live"
+                      >
+                        from PR #{e.origin.pr}
+                      </Badge>
+                    ) : (
+                      <span className="text-[13px] text-faint">
+                        {e.origin === "manual" ? "manual" : "seed"}
+                      </span>
+                    )}
                   </TableCell>
                   <TableCell className="max-w-56">
                     <span className="block truncate font-mono text-[12px] text-faint">
@@ -243,12 +284,25 @@ export default function EvalsPage({
                       <span className="text-faint">—</span>
                     )}
                   </TableCell>
+                  <TableCell className="w-8 text-right">
+                    {e.store && (
+                      <button
+                        type="button"
+                        aria-label={`Remove ${e.name}`}
+                        disabled={deleteMutation.isPending}
+                        onClick={() => deleteMutation.mutate(e.name)}
+                        className="text-faint hover:text-foreground disabled:opacity-50"
+                      >
+                        <X className="size-3.5" />
+                      </button>
+                    )}
+                  </TableCell>
                 </TableRow>
               );
             })}
             {rows.length === 0 && (
               <TableRow className="border-border-soft hover:bg-transparent">
-                <TableCell colSpan={6} className="py-6 text-center text-xs text-faint">
+                <TableCell colSpan={7} className="py-6 text-center text-xs text-faint">
                   no evals
                 </TableCell>
               </TableRow>
@@ -257,6 +311,13 @@ export default function EvalsPage({
         </Table>
       )}
 
+      {repo && (
+        <NewEvalDialog
+          repo={repo}
+          open={dialogOpen}
+          onOpenChange={setDialogOpen}
+        />
+      )}
     </div>
   );
 }

@@ -20,6 +20,11 @@ export interface EvalSpec {
   absolute?: Record<string, string>; // check mode: metric -> "<50"
 }
 
+// Per-repo eval store entry: overlays the seeded suite by name.
+export interface StoredEval extends EvalSpec {
+  origin?: string; // "pr:N" when gap-born; absent when created by hand
+}
+
 export interface RunSpec {
   schema: string;
   run: string;

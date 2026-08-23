@@ -1,7 +1,9 @@
 "use client";
 
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  createEval,
+  deleteEval,
   getBranches,
   getEvents,
   getReport,
@@ -12,13 +14,14 @@ import {
   getTelemetry,
   githubRepos,
   githubStatus,
+  listEvals,
   listRepos,
   listRuns,
   listSandboxes,
   listSessions,
 } from "@/lib/api";
 import { statusFromEvents } from "@/lib/phases";
-import type { InfervalEvent } from "@/lib/types";
+import type { InfervalEvent, StoredEval } from "@/lib/types";
 
 export const queryKeys = {
   all: ["inferval"] as const,
@@ -35,6 +38,7 @@ export const queryKeys = {
   sessionEvents: (id: string) =>
     [...queryKeys.all, "session-events", id] as const,
   sandboxes: (repo: string) => [...queryKeys.all, "sandboxes", repo] as const,
+  evals: (repo: string) => [...queryKeys.all, "evals", repo] as const,
   telemetry: (run: string, block: string) =>
     [...queryKeys.all, "telemetry", run, block] as const,
   githubStatus: () => [...queryKeys.all, "github", "status"] as const,
@@ -164,6 +168,38 @@ export function useSandboxesQuery(repo: string) {
     queryFn: () => listSandboxes(repo),
     enabled: Boolean(repo),
     refetchInterval: 10_000,
+  });
+}
+
+export function useEvalsQuery(repo: string) {
+  return useQuery({
+    queryKey: queryKeys.evals(repo),
+    queryFn: () => listEvals(repo),
+    enabled: Boolean(repo),
+  });
+}
+
+// Stored evals overlay the repo's seeded suite, so the repo list (its `evals`
+// name list) is invalidated alongside the store on every write.
+export function useCreateEvalMutation(repo: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (spec: StoredEval) => createEval(repo, spec),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.evals(repo) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.repos() });
+    },
+  });
+}
+
+export function useDeleteEvalMutation(repo: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (name: string) => deleteEval(repo, name),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.evals(repo) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.repos() });
+    },
   });
 }
 

@@ -14,6 +14,7 @@ import type {
   SandboxInfo,
   SessionDetail,
   SessionSummary,
+  StoredEval,
   Telemetry,
 } from "@/lib/types";
 
@@ -198,6 +199,44 @@ export async function sandboxAction(
   action: "stop" | "extend",
 ): Promise<{ ok: boolean }> {
   return post(`/api/sandboxes/${encodeURIComponent(id)}`, { action });
+}
+
+// ---- eval store: per-repo stored evals that overlay the seeded suite ----
+
+export async function listEvals(repo: string): Promise<StoredEval[]> {
+  return get(`/api/repos/${encodeURIComponent(repo)}/evals`);
+}
+
+// 422 -> Error carrying the server's `detail` string, so the UI can show it.
+export async function createEval(
+  repo: string,
+  spec: StoredEval,
+): Promise<StoredEval> {
+  const res = await fetch(`${API}/api/repos/${encodeURIComponent(repo)}/evals`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(spec),
+  });
+  if (!res.ok) {
+    const detail = await res
+      .json()
+      .then((b) => (typeof b?.detail === "string" ? b.detail : null))
+      .catch(() => null);
+    throw new Error(detail ?? `POST evals -> ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function deleteEval(
+  repo: string,
+  name: string,
+): Promise<{ deleted: string }> {
+  const res = await fetch(
+    `${API}/api/repos/${encodeURIComponent(repo)}/evals/${encodeURIComponent(name)}`,
+    { method: "DELETE" },
+  );
+  if (!res.ok) throw new Error(`DELETE eval ${name} -> ${res.status}`);
+  return res.json();
 }
 
 export function blockTelemetryFile(detail: Record<string, unknown>): string {

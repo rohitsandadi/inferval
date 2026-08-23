@@ -8,13 +8,33 @@ an agent can define a repo's evals without touching the repo itself.
 """
 import json
 import os
+import time
 
 from fastapi import APIRouter, HTTPException
 
 from atlas.contracts.evalspec import validate_eval
-from atlas.contracts.names import ENV_RUNS_ROOT
+from atlas.contracts.names import ENV_RUNS_ROOT, VOLUME_RUNS
 
 router = APIRouter(prefix="/api")
+
+_last_reload = 0.0
+
+
+def _maybe_reload() -> None:
+    """Freshen the runs Volume before reads on Modal, at most once a second
+    (same pattern as api.py/sessions.py; local no-op without ATLAS_ON_MODAL)."""
+    global _last_reload
+    if not os.environ.get("ATLAS_ON_MODAL"):
+        return
+    now = time.time()
+    if now - _last_reload < 1.0:
+        return
+    _last_reload = now
+    try:
+        import modal
+        modal.Volume.from_name(VOLUME_RUNS).reload()
+    except Exception:
+        pass  # stale reads beat a dead API
 
 
 def _runs_root() -> str:
@@ -42,10 +62,12 @@ def store_evals(repo_name: str) -> list[dict]:
 
 
 def _commit_volume() -> None:
+    """Publish a store write to every container. reload() alone (the old
+    body) never persisted anything — other API containers flapped between
+    seeing and not seeing new evals until this actually commits."""
     try:
         import modal
-        from atlas.contracts.names import VOLUME_RUNS
-        modal.Volume.from_name(VOLUME_RUNS).reload()  # freshen, then write wins
+        modal.Volume.from_name(VOLUME_RUNS).commit()
     except Exception:
         pass
 
@@ -75,6 +97,7 @@ def _load_repo_names() -> set[str]:
 
 @router.get("/repos/{name:path}/evals")
 def list_evals(name: str):
+    _maybe_reload()
     if name not in _load_repo_names():
         raise HTTPException(404, f"unknown repo: {name}")
     return store_evals(name)
