@@ -1,12 +1,12 @@
 import Link from "next/link";
-import { Activity } from "lucide-react";
+import { Gauge } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function BrandMark({ className }: { className?: string }) {
   return (
-    <Activity
+    <Gauge
       aria-hidden
-      strokeWidth={2.25}
+      strokeWidth={2}
       className={cn("size-5 shrink-0 text-muted-foreground", className)}
     />
   );
