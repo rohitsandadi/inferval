@@ -7,7 +7,7 @@
   "url": "https://github.com/rohitsandadi/nanoGPT/pull/1",
   "body": "Optimize generation: host-side sampling with pinned staging (\"~2x faster generation\"). Avoids device RNG divergence across GPU architectures, removes the sampling kernel launch from the hot loop, and adds a numerical stability guard. Outputs are bit-identical.",
   "head": "9c2b11d0",
-  "base": "atlas-base"
+  "base": "inferval-base"
  },
  "branch": "opt-sampling",
  "triage": [

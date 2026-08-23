@@ -3,7 +3,8 @@
 // Reviews — full log (wireframe screen 7): search + branch + verdict filters
 // over every run; live rows refresh until done.
 
-import { use, useEffect, useMemo, useRef, useState } from "react";
+import { use, useMemo, useState } from "react";
+import { useQueries } from "@tanstack/react-query";
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
@@ -16,9 +17,9 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { RunsTable, type RunExtras } from "@/components/runs-table";
 import { useRepoShell } from "@/components/repo-shell";
-import { getRun, listRuns } from "@/lib/api";
+import { getRun } from "@/lib/api";
+import { queryKeys, useRunsQuery } from "@/lib/queries";
 import { fmtCost } from "@/lib/format";
-import type { RunSummary } from "@/lib/types";
 
 const ALL = "__all__";
 
@@ -29,41 +30,32 @@ export default function ReviewsPage({
 }) {
   const { owner, name } = use(params);
   const repoName = `${decodeURIComponent(owner)}/${decodeURIComponent(name)}`;
-  const { repo, runsVersion } = useRepoShell();
-
-  const [runs, setRuns] = useState<RunSummary[] | null>(null);
-  const [extras, setExtras] = useState<Record<string, RunExtras>>({});
+  const { repo } = useRepoShell();
+  const { data: runsData } = useRunsQuery(repoName);
+  const runs = runsData ?? null;
   const [query, setQuery] = useState("");
   const [branch, setBranch] = useState(ALL);
   const [verdict, setVerdict] = useState(ALL);
 
-  useEffect(() => {
-    listRuns(repoName).then(setRuns);
-  }, [repoName, runsVersion]);
-
-  // Evals/GPU columns come from each run's resolved spec; fetch once per run.
-  const fetchedExtras = useRef(new Set<string>());
-  useEffect(() => {
-    runs?.forEach((r) => {
-      if (fetchedExtras.current.has(r.run)) return;
-      fetchedExtras.current.add(r.run);
-      getRun(r.run)
-        .then((d) =>
-          setExtras((m) => ({
-            ...m,
-            [r.run]: { evals: d.spec.evals.length, gpu: d.spec.gpu },
-          })),
-        )
-        .catch(() => {});
-    });
-  }, [runs]);
-
-  // Status refresh: while any run is live, refetch the log.
-  useEffect(() => {
-    if (!runs?.some((r) => r.status !== "done")) return;
-    const t = setInterval(() => listRuns(repoName).then(setRuns), 5000);
-    return () => clearInterval(t);
-  }, [repoName, runs]);
+  const runQueries = useQueries({
+    queries: (runs ?? []).map((run) => ({
+      queryKey: queryKeys.run(run.run),
+      queryFn: () => getRun(run.run),
+      staleTime: run.status === "done" ? 5 * 60_000 : 0,
+    })),
+  });
+  const extras = useMemo<Record<string, RunExtras>>(
+    () =>
+      Object.fromEntries(
+        (runs ?? []).flatMap((run, index) => {
+          const detail = runQueries[index]?.data;
+          return detail
+            ? [[run.run, { evals: detail.spec.evals.length, gpu: detail.spec.gpu }]]
+            : [];
+        }),
+      ),
+    [runs, runQueries],
+  );
 
   const branches = useMemo(() => {
     const set = new Set<string>();

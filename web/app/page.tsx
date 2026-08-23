@@ -3,7 +3,8 @@
 // Home (wireframe-v3 screen 7): repo table + cross-repo recent-reviews feed.
 // The card grid is retired — a table scales and says more per cm².
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
+import { useQueries, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Search } from "lucide-react";
@@ -24,11 +25,14 @@ import { Delta } from "@/components/atoms";
 import {
   getBranches,
   githubLoginUrl,
-  githubStatus,
   isMock,
-  listRepos,
   listRuns,
 } from "@/lib/api";
+import {
+  queryKeys,
+  useGithubStatusQuery,
+  useReposQuery,
+} from "@/lib/queries";
 import {
   fmtCost,
   fmtRelative,
@@ -37,8 +41,6 @@ import {
 } from "@/lib/format";
 import type {
   BranchInfo,
-  GithubStatus,
-  RepoInfo,
   RunSummary,
 } from "@/lib/types";
 
@@ -49,36 +51,54 @@ function relShort(iso: string): string {
 
 export default function HomePage() {
   const router = useRouter();
-  const [repos, setRepos] = useState<RepoInfo[] | null>(null);
-  const [branchesByRepo, setBranchesByRepo] = useState<
-    Record<string, BranchInfo[]>
-  >({});
-  const [runsByRepo, setRunsByRepo] = useState<Record<string, RunSummary[]>>(
-    {},
-  );
+  const queryClient = useQueryClient();
+  const { data: reposData, isPending: reposPending } = useReposQuery();
+  const repos = reposData ?? null;
   const [query, setQuery] = useState("");
-  const [gh, setGh] = useState<GithubStatus | null>(null);
+  const { data: ghData, isPending: ghPending } = useGithubStatusQuery();
+  const gh = ghData ?? (ghPending ? null : { connected: false, login: null });
   const [pickerOpen, setPickerOpen] = useState(false);
 
-  const loadRepos = () =>
-    listRepos().then((rs) => {
-      setRepos(rs);
-      rs.forEach((r) => {
-        getBranches(r.name).then((bs) =>
-          setBranchesByRepo((prev) => ({ ...prev, [r.name]: bs })),
-        );
-        listRuns(r.name)
-          .then((runs) =>
-            setRunsByRepo((prev) => ({ ...prev, [r.name]: runs })),
-          )
-          .catch(() => {});
-      });
-    });
+  const repoList = useMemo(() => reposData ?? [], [reposData]);
+  const branchQueries = useQueries({
+    queries: repoList.map((repo) => ({
+      queryKey: queryKeys.branches(repo.name),
+      queryFn: () => getBranches(repo.name),
+      staleTime: 30_000,
+    })),
+  });
+  const runQueries = useQueries({
+    queries: repoList.map((repo) => ({
+      queryKey: queryKeys.runs(repo.name),
+      queryFn: () => listRuns(repo.name),
+      staleTime: 30_000,
+      refetchInterval: (query: { state: { data?: RunSummary[] } }) =>
+        query.state.data?.some((run) => run.status !== "done") ? 5_000 : false,
+    })),
+  });
+  const branchesByRepo = useMemo(
+    () =>
+      Object.fromEntries(
+        repoList.map((repo, i) => [
+          repo.name,
+          branchQueries[i]?.data as BranchInfo[] | undefined,
+        ]),
+      ),
+    [repoList, branchQueries],
+  );
+  const runsByRepo = useMemo(
+    () =>
+      Object.fromEntries(
+        repoList.map((repo, i) => [
+          repo.name,
+          (runQueries[i]?.data as RunSummary[] | undefined) ?? [],
+        ]),
+      ),
+    [repoList, runQueries],
+  );
 
-  useEffect(() => {
-    loadRepos();
-    githubStatus().then(setGh);
-  }, []);
+  const refreshRepos = () =>
+    queryClient.invalidateQueries({ queryKey: queryKeys.repos() });
 
   const visible = useMemo(
     () =>
@@ -103,7 +123,7 @@ export default function HomePage() {
   return (
     <div className="flex min-h-dvh flex-col">
       <header className="flex items-center justify-between gap-3 border-b border-border-soft px-4 py-2">
-        <span className="text-[13px] font-semibold">Atlas</span>
+        <span className="text-[13px] font-semibold">inferval</span>
         <div className="flex items-center gap-2">
           <div className="relative">
             <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-faint" />
@@ -139,11 +159,11 @@ export default function HomePage() {
         onOpenChange={setPickerOpen}
         gh={gh}
         connectedNames={repos?.map((r) => r.name) ?? []}
-        onConnected={loadRepos}
+        onConnected={refreshRepos}
       />
       <main className="mx-auto w-full max-w-[1240px] flex-1 p-5">
         <div className="grid grid-cols-[1fr_300px] items-start gap-4 max-md:grid-cols-1">
-          {visible === null ? (
+          {visible === null || reposPending ? (
             <div className="space-y-2">
               {[0, 1, 2].map((i) => (
                 <Skeleton key={i} className="h-10 w-full" />

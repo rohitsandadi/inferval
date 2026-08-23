@@ -18,8 +18,7 @@ export interface RepoShellState {
   openNewReview: (defaultHead?: string) => void;
   setCrumbs: (crumbs: Crumb[] | null) => void;
   setTopbarRight: (node: ReactNode | null) => void; // null = New review button
-  refreshRuns: () => void; // bump after submitRun so lists refetch
-  runsVersion: number;
+  refreshRuns: () => void; // invalidate cached run + branch summaries after submit
 }
 
 export const RepoShellContext = createContext<RepoShellState | null>(null);

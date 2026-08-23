@@ -4,7 +4,8 @@
 // state dots, cooldown countdowns, Stop / Keep-warm controls — plus the
 // sandbox_exec activity feed of session-attached boxes.
 
-import { use, useCallback, useEffect, useMemo, useState } from "react";
+import { use, useEffect, useMemo, useState } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -20,13 +21,16 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { StatusDot } from "@/components/status-dot";
 import { useRepoShell } from "@/components/repo-shell";
 import {
-  getSessionEvents,
-  listSandboxes,
-  listSessions,
   sandboxAction,
 } from "@/lib/api";
+import {
+  queryKeys,
+  useSandboxesQuery,
+  useSessionEventsQuery,
+  useSessionsQuery,
+} from "@/lib/queries";
 import { fmtClock, fmtTime } from "@/lib/format";
-import type { AtlasEvent, SandboxInfo, SessionSummary } from "@/lib/types";
+import type { SandboxInfo } from "@/lib/types";
 
 const EXTEND_S = 600;
 
@@ -47,15 +51,15 @@ function Countdown({ deadline }: { deadline: number }) {
 
 function Uptime({ row }: { row: SandboxInfo }) {
   // Running boxes tick; everything else is a frozen number from the registry.
-  const [, bump] = useState(0);
+  const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     if (row.state !== "running" || !row.created_at) return;
-    const t = setInterval(() => bump((n) => n + 1), 1000);
+    const t = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(t);
   }, [row.state, row.created_at]);
   const s =
     row.state === "running" && row.created_at
-      ? (Date.now() - new Date(row.created_at).getTime()) / 1000
+      ? (now - new Date(row.created_at).getTime()) / 1000
       : row.uptime_s;
   return (
     <span className="font-mono tabular-nums">
@@ -72,52 +76,41 @@ export default function SandboxesPage({
   const { owner, name } = use(params);
   const repoName = `${decodeURIComponent(owner)}/${decodeURIComponent(name)}`;
   const { setTopbarRight } = useRepoShell();
+  const queryClient = useQueryClient();
 
-  const [rows, setRows] = useState<SandboxInfo[] | null>(null);
-  const [sessions, setSessions] = useState<SessionSummary[]>([]);
   const [tab, setTab] = useState<"active" | "all">("active");
-  const [feed, setFeed] = useState<{
-    sandbox: string;
-    session: string;
-    events: AtlasEvent[];
-  } | null>(null);
-
-  const refresh = useCallback(() => {
-    listSandboxes(repoName).then(setRows);
-  }, [repoName]);
-
-  useEffect(() => {
-    refresh();
-    listSessions(repoName).then(setSessions);
-    const t = setInterval(refresh, 10_000);
-    return () => clearInterval(t);
-  }, [repoName, refresh]);
-
-  // Activity: sandbox_exec events of the newest active session-attached box.
-  useEffect(() => {
-    const target = rows?.find(
-      (r) => r.attached?.session && r.state !== "terminated",
-    );
-    if (!target?.attached?.session) {
-      setFeed(null);
-      return;
-    }
-    const sess = target.attached.session;
-    let alive = true;
-    getSessionEvents(sess)
-      .then((evs) => {
-        if (!alive) return;
-        setFeed({
-          sandbox: target.id,
-          session: sess,
-          events: evs.filter((e) => e.kind === "sandbox_exec"),
-        });
-      })
-      .catch(() => setFeed(null));
-    return () => {
-      alive = false;
-    };
-  }, [rows]);
+  const { data: rowsData, isPending } = useSandboxesQuery(repoName);
+  const { data: sessions = [] } = useSessionsQuery(repoName);
+  const rows = rowsData ?? null;
+  const target = rows?.find(
+    (row) => row.attached?.session && row.state !== "terminated",
+  );
+  const targetSession = target?.attached?.session ?? "";
+  const { data: targetEvents = [] } = useSessionEventsQuery(targetSession);
+  const feed = target
+    ? {
+        sandbox: target.id,
+        session: targetSession,
+        events: targetEvents.filter((event) => event.kind === "sandbox_exec"),
+      }
+    : null;
+  const actionMutation = useMutation({
+    mutationFn: ({ id, action }: { id: string; action: "stop" | "extend" }) =>
+      sandboxAction(id, action),
+    onMutate: ({ id, action }) => {
+      queryClient.setQueryData(queryKeys.sandboxes(repoName), (current: typeof rowsData) =>
+        current?.map((row) =>
+          row.id !== id
+            ? row
+            : action === "stop"
+              ? { ...row, state: "terminated" as const, uptime_s: null }
+              : { ...row, deadline: (row.deadline ?? Date.now() / 1000) + EXTEND_S },
+        ),
+      );
+    },
+    onSettled: () =>
+      queryClient.invalidateQueries({ queryKey: queryKeys.sandboxes(repoName) }),
+  });
 
   const gpuSecondsToday = useMemo(
     () =>
@@ -154,22 +147,7 @@ export default function SandboxesPage({
   );
 
   const act = async (id: string, action: "stop" | "extend") => {
-    // optimistic: the registry echoes the same shape back
-    setRows(
-      (rs) =>
-        rs?.map((r) =>
-          r.id !== id
-            ? r
-            : action === "stop"
-              ? { ...r, state: "terminated" as const, uptime_s: null }
-              : { ...r, deadline: (r.deadline ?? Date.now() / 1000) + EXTEND_S },
-        ) ?? null,
-    );
-    try {
-      await sandboxAction(id, action);
-    } finally {
-      refresh();
-    }
+    await actionMutation.mutateAsync({ id, action });
   };
 
   return (
@@ -181,7 +159,7 @@ export default function SandboxesPage({
         </TabsList>
       </Tabs>
 
-      {visible === null ? (
+      {visible === null || isPending ? (
         <div className="space-y-2">
           {[0, 1, 2].map((i) => (
             <Skeleton key={i} className="h-9 w-full" />

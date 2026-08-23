@@ -4,6 +4,7 @@
 // last option swaps to a SHA input; the claim auto-fills from the head PR.
 
 import { useEffect, useMemo, useState } from "react";
+import { useMutation } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { X } from "lucide-react";
@@ -135,11 +136,13 @@ export function NewReviewDialog({
   const [claim, setClaim] = useState("");
   const [claimEdited, setClaimEdited] = useState(false);
   const [autoApprove, setAutoApprove] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
+  const submitMutation = useMutation({ mutationFn: submitRun });
 
   // Reset per open; head follows defaultHead (row buttons pass the branch).
   useEffect(() => {
     if (!open) return;
+    // Reset the controlled form each time it opens for a different branch.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMode("compare");
     setSelection("auto");
     setPicked(new Set(repo.evals));
@@ -165,12 +168,12 @@ export function NewReviewDialog({
   };
 
   const canSubmit =
-    !submitting && base.trim() !== "" && (mode === "check" || head.trim() !== "");
+    !submitMutation.isPending &&
+    base.trim() !== "" &&
+    (mode === "check" || head.trim() !== "");
 
   const onSubmit = async () => {
-    setSubmitting(true);
-    try {
-      const res = await submitRun({
+    const res = await submitMutation.mutateAsync({
         repo: repo.name,
         mode,
         base: base.trim(),
@@ -183,14 +186,11 @@ export function NewReviewDialog({
               : [...picked],
         approvals: autoApprove ? "auto" : "manual",
         claim: claim.trim() || undefined,
-      });
-      toast(`Review ${res.run} queued`);
-      refreshRuns();
-      onOpenChange(false);
-      router.push(`/repo/${repo.name}/reviews/${res.run}`);
-    } finally {
-      setSubmitting(false);
-    }
+    });
+    toast(`Review ${res.run} queued`);
+    refreshRuns();
+    onOpenChange(false);
+    router.push(`/repo/${repo.name}/reviews/${res.run}`);
   };
 
   return (
@@ -339,7 +339,7 @@ export function NewReviewDialog({
             Cancel
           </Button>
           <Button disabled={!canSubmit} onClick={onSubmit}>
-            {submitting ? "Starting…" : "Start review"}
+            {submitMutation.isPending ? "Starting…" : "Start review"}
           </Button>
         </DialogFooter>
       </DialogContent>

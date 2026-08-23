@@ -14,7 +14,7 @@ import { StatusDot, verdictDot } from "@/components/status-dot";
 import { CoverageChip, RiskTag } from "@/components/diff-view";
 import { fmtClock } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import type { AtlasEvent, Annotation, EvalDraft, VerdictKind } from "@/lib/types";
+import type { InfervalEvent, Annotation, EvalDraft, VerdictKind } from "@/lib/types";
 
 const ENV_OPTIONS = ["none", "cpu", "T4", "A10G", "A100"];
 
@@ -86,7 +86,7 @@ function coverageChips(a: Annotation) {
   return <CoverageChip label={evals[0]} />;
 }
 
-function TriageCard({ e }: { e: AtlasEvent }) {
+function TriageCard({ e }: { e: InfervalEvent }) {
   const anns = (e.detail.annotations as Annotation[] | undefined) ?? [];
   return (
     <CardShell kind="triage" time={hms(e.t)}>
@@ -105,7 +105,7 @@ function TriageCard({ e }: { e: AtlasEvent }) {
   );
 }
 
-function EnvDecisionCard({ e }: { e: AtlasEvent }) {
+function EnvDecisionCard({ e }: { e: InfervalEvent }) {
   const kind = str(e.detail.kind);
   return (
     <CardShell kind="env_decision" time={hms(e.t)}>
@@ -141,7 +141,7 @@ function EvalDraftCard({
   decision,
   onDecide,
 }: {
-  e: AtlasEvent;
+  e: InfervalEvent;
   decision?: "approved" | "denied";
   onDecide: (id: string, d: "approved" | "denied") => void;
 }) {
@@ -199,7 +199,7 @@ function SandboxProposalCard({
   e,
   status,
 }: {
-  e: AtlasEvent;
+  e: InfervalEvent;
   status: string;
 }) {
   const dot =
@@ -231,7 +231,7 @@ function ReviewSubmittedCard({
   linked,
   reviewHref,
 }: {
-  e: AtlasEvent;
+  e: InfervalEvent;
   linked: { verdict: VerdictKind | null; status: string; cost_usd: number | null } | null;
   reviewHref: string;
 }) {
@@ -271,10 +271,10 @@ function ReviewSubmittedCard({
 // ---- feed assembly ---------------------------------------------------------
 
 type Block =
-  | { type: "event"; e: AtlasEvent }
-  | { type: "thinking"; events: AtlasEvent[] };
+  | { type: "event"; e: InfervalEvent }
+  | { type: "thinking"; events: InfervalEvent[] };
 
-function toBlocks(events: AtlasEvent[]): Block[] {
+function toBlocks(events: InfervalEvent[]): Block[] {
   const blocks: Block[] = [];
   for (const e of events) {
     if (e.kind === "turn_done") continue;
@@ -290,7 +290,7 @@ function toBlocks(events: AtlasEvent[]): Block[] {
   return blocks;
 }
 
-function ThinkingBlock({ events }: { events: AtlasEvent[] }) {
+function ThinkingBlock({ events }: { events: InfervalEvent[] }) {
   const [expanded, setExpanded] = useState(false);
   const shown = expanded ? events : events.slice(0, 2);
   return (
@@ -314,12 +314,12 @@ function ThinkingBlock({ events }: { events: AtlasEvent[] }) {
 }
 
 function WorkingIndicator({ since }: { since: string }) {
-  const [, bump] = useState(0);
+  const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
-    const t = setInterval(() => bump((n) => n + 1), 1000);
+    const t = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(t);
   }, []);
-  const s = Math.max(0, (Date.now() - new Date(since).getTime()) / 1000);
+  const s = Math.max(0, (now - new Date(since).getTime()) / 1000);
   return (
     <div className="flex items-center gap-2 pl-0.5">
       <StatusDot state="busy" label="Turn running" className="text-[10.5px]" />
@@ -340,7 +340,7 @@ export function SessionPane({
   onSend,
   sending,
 }: {
-  events: AtlasEvent[];
+  events: InfervalEvent[];
   owner: string;
   name: string;
   // review_submitted run id -> its fetched state (null until loaded)

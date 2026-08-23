@@ -3,7 +3,7 @@
 // Branch detail (wireframe screen 4): header facts, the PR claim, and the
 // review timeline — claim, red review, fix commit, re-verify — newest on top.
 
-import { use, useEffect, useMemo, useState } from "react";
+import { use, useEffect, useMemo } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -13,9 +13,8 @@ import {
   ReviewTimeline,
   type TimelineItem,
 } from "@/components/review-timeline";
-import { getBranches, listRuns } from "@/lib/api";
+import { useBranchesQuery, useRunsQuery } from "@/lib/queries";
 import { looksLikeSha, shortSha } from "@/lib/format";
-import type { BranchInfo, RunSummary } from "@/lib/types";
 
 export default function BranchDetailPage({
   params,
@@ -25,17 +24,11 @@ export default function BranchDetailPage({
   const { owner, name, branch } = use(params);
   const branchName = decodeURIComponent(branch);
   const repoName = `${decodeURIComponent(owner)}/${decodeURIComponent(name)}`;
-  const { repo, openNewReview, setTopbarRight, runsVersion } = useRepoShell();
-
-  const [branches, setBranches] = useState<BranchInfo[] | null>(null);
-  const [runs, setRuns] = useState<RunSummary[] | null>(null);
-
-  useEffect(() => {
-    getBranches(repoName).then(setBranches);
-  }, [repoName]);
-  useEffect(() => {
-    listRuns(repoName).then(setRuns);
-  }, [repoName, runsVersion]);
+  const { repo, openNewReview, setTopbarRight } = useRepoShell();
+  const { data: branchesData } = useBranchesQuery(repoName);
+  const { data: runsData } = useRunsQuery(repoName);
+  const branches = branchesData ?? null;
+  const runs = runsData ?? null;
 
   // The page's one primary action lives in the topbar.
   useEffect(() => {
