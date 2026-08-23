@@ -75,9 +75,17 @@ export default function RepoLayout({
 
   const extraCrumbs = crumbs ?? autoCrumbs;
 
+  const workspace =
+    pathname.includes("/sessions/") || pathname.includes("/prs/");
+
   return (
     <RepoShellContext.Provider value={shell}>
-      <div className="flex min-h-dvh flex-col">
+      <div
+        className={cn(
+          "flex flex-col",
+          workspace ? "h-dvh overflow-hidden" : "min-h-dvh",
+        )}
+      >
         <header className="flex items-center justify-between gap-3 border-b border-border-soft px-4 py-2">
           <nav className="flex min-w-0 items-center gap-2 text-[13px]">
             <Link href="/" className="font-semibold text-foreground">
@@ -125,10 +133,19 @@ export default function RepoLayout({
             </Button>
           )}
         </header>
-        <div className="flex flex-1 max-md:flex-col">
-          <RepoSidebar owner={owner} name={name} />
-          <main className="min-w-0 flex-1 px-6 py-5">{children}</main>
-        </div>
+        {/* The PR/session workspace is full-bleed: no sidebar, no padding. */}
+        {workspace ? (
+          <main className="flex min-h-0 min-w-0 flex-1 flex-col">
+            {children}
+          </main>
+        ) : (
+          <div className="flex flex-1 max-md:flex-col">
+            <RepoSidebar owner={owner} name={name} />
+            <main className="min-w-0 flex-1 px-6 py-5">
+              <div className="mx-auto max-w-[1240px]">{children}</div>
+            </main>
+          </div>
+        )}
       </div>
       {repo && (
         <NewReviewDialog

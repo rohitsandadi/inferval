@@ -1,7 +1,8 @@
 "use client";
 
-// Review rows (wireframe screen 7): id, change, verdict dot, deltas, cost,
-// status dot (blue while live), relative time.
+// Review rows (wireframe-v3 screen 10): id, change, verdict dot, deltas,
+// evals, GPU, wall, cost, relative time. Evals/GPU come from each run's spec
+// (fetched by the page; "—" until loaded).
 
 import { useRouter } from "next/navigation";
 import {
@@ -14,7 +15,7 @@ import {
 } from "@/components/ui/table";
 import { StatusDot, verdictDot } from "@/components/status-dot";
 import { Delta } from "@/components/atoms";
-import { fmtCost, fmtRelative, shortSha } from "@/lib/format";
+import { fmtClock, fmtCost, fmtRelative, shortSha } from "@/lib/format";
 import type { RunSummary } from "@/lib/types";
 
 function toneFor(
@@ -27,14 +28,21 @@ function toneFor(
   return bad ? "bad" : good ? "good" : "neutral";
 }
 
+export interface RunExtras {
+  evals: number;
+  gpu: string;
+}
+
 export function RunsTable({
   repoName,
   runs,
   baseLabel,
+  extras = {},
 }: {
   repoName: string;
   runs: RunSummary[];
   baseLabel?: string;
+  extras?: Record<string, RunExtras>;
 }) {
   const router = useRouter();
   const [owner, name] = repoName.split("/");
@@ -52,10 +60,18 @@ export function RunsTable({
             p95 Δ
           </TableHead>
           <TableHead className="text-right text-[11px] font-normal text-faint">
+            Evals
+          </TableHead>
+          <TableHead className="text-[11px] font-normal text-faint">GPU</TableHead>
+          <TableHead className="text-right text-[11px] font-normal text-faint">
+            Wall
+          </TableHead>
+          <TableHead className="text-right text-[11px] font-normal text-faint">
             Cost
           </TableHead>
-          <TableHead className="text-[11px] font-normal text-faint">Status</TableHead>
-          <TableHead className="text-right text-[11px] font-normal text-faint" />
+          <TableHead className="text-right text-[11px] font-normal text-faint">
+            When
+          </TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -63,6 +79,7 @@ export function RunsTable({
           const live = r.status !== "done";
           const head = r.branch ?? shortSha(r.head_sha);
           const base = baseLabel ?? shortSha(r.base_sha);
+          const extra = extras[r.run];
           return (
             <TableRow
               key={r.run}
@@ -71,14 +88,19 @@ export function RunsTable({
               }
               className="cursor-pointer border-border-soft"
             >
-              <TableCell className="max-w-32 truncate font-mono text-xs">
+              <TableCell className="max-w-36 truncate font-mono text-xs">
                 {r.run}
               </TableCell>
               <TableCell className="font-mono text-[11px] text-muted-foreground">
                 {head} → {base}
               </TableCell>
               <TableCell className="text-xs">
-                {r.verdict === null ? (
+                {live ? (
+                  <StatusDot
+                    state="busy"
+                    label={r.status[0].toUpperCase() + r.status.slice(1)}
+                  />
+                ) : r.verdict === null ? (
                   <span className="text-faint">—</span>
                 ) : (
                   <StatusDot {...verdictDot(r.verdict)} />
@@ -94,31 +116,34 @@ export function RunsTable({
                 <Delta pct={r.p95_delta_pct} tone={toneFor(r.p95_delta_pct, "pos")} />
               </TableCell>
               <TableCell className="text-right font-mono text-xs tabular-nums">
+                {extra ? extra.evals : <span className="text-faint">—</span>}
+              </TableCell>
+              <TableCell className="font-mono text-xs">
+                {extra ? extra.gpu : <span className="text-faint">—</span>}
+              </TableCell>
+              <TableCell className="text-right font-mono text-xs tabular-nums">
+                {r.duration_s === null ? (
+                  <span className="text-faint">—</span>
+                ) : (
+                  fmtClock(r.duration_s)
+                )}
+              </TableCell>
+              <TableCell className="text-right font-mono text-xs tabular-nums">
                 {r.cost_usd === null ? (
                   <span className="text-faint">—</span>
                 ) : (
                   fmtCost(r.cost_usd)
                 )}
               </TableCell>
-              <TableCell className="text-xs">
-                <StatusDot
-                  state={live ? "busy" : "idle"}
-                  label={
-                    live
-                      ? r.status[0].toUpperCase() + r.status.slice(1)
-                      : "Done"
-                  }
-                />
-              </TableCell>
               <TableCell className="text-right font-mono text-[11px] text-faint">
-                {fmtRelative(r.created_at)}
+                {fmtRelative(r.created_at).replace(" ago", "")}
               </TableCell>
             </TableRow>
           );
         })}
         {runs.length === 0 && (
           <TableRow className="border-border-soft hover:bg-transparent">
-            <TableCell colSpan={8} className="py-6 text-center text-xs text-faint">
+            <TableCell colSpan={10} className="py-6 text-center text-xs text-faint">
               no reviews
             </TableCell>
           </TableRow>

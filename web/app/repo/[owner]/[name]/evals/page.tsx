@@ -1,7 +1,8 @@
 "use client";
 
-// Evals (wireframe screen 12): the suite as atlas.yaml defines it — name,
-// command, thresholds as badges, and the newest measured result per eval.
+// Evals (wireframe-v3 screen 6): the suite as atlas.yaml defines it — name,
+// origin (seed / gap-born "from PR #N"), command, thresholds, and the last
+// five reviews' deltas per eval (oldest → newest, latest emphasized).
 
 import { use, useEffect, useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
@@ -15,10 +16,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Delta } from "@/components/atoms";
 import { NewEvalDialog } from "@/components/new-eval-dialog";
 import { useRepoShell } from "@/components/repo-shell";
-import { getRun, listRuns } from "@/lib/api";
+import { getRun, listGapBornEvals, listRuns } from "@/lib/api";
+import { fmtDelta } from "@/lib/format";
+import { cn } from "@/lib/utils";
 import type { CheckResult, EvalSpec } from "@/lib/types";
 
 const METRIC_SHORT: Record<string, string> = {
@@ -42,11 +44,28 @@ function absoluteBadge(metric: string, limit: string): string {
   return `${short} ${m[1]} ${m[2]}${unit}`;
 }
 
-function lastResultTone(pct: number): "bad" | "good" | "neutral" {
-  if (pct < -3) return "bad";
-  if (pct > 3) return "good";
-  return "neutral";
+// Coloring past the 3% noise margin; the metric's bad direction depends on
+// whether bigger is better (tokens/s) or worse (latency, VRAM).
+function deltaTone(
+  pct: number,
+  metric: string,
+): "bad" | "good" | "neutral" {
+  const badWhenPos = metric !== "tokens_per_s";
+  const bad = badWhenPos ? pct > 3 : pct < -3;
+  const good = badWhenPos ? pct < -3 : pct > 3;
+  return bad ? "bad" : good ? "good" : "neutral";
 }
+
+interface EvalRow extends EvalSpec {
+  origin?: "seed" | "manual" | { pr: number };
+}
+
+interface HistoryPoint {
+  pct: number;
+  metric: string;
+}
+
+const HISTORY_N = 5;
 
 export default function EvalsPage({
   params,
@@ -58,49 +77,90 @@ export default function EvalsPage({
   const { repo } = useRepoShell();
 
   const [evals, setEvals] = useState<EvalSpec[] | null>(null);
-  const [lastChecks, setLastChecks] = useState<CheckResult[]>([]);
-  const [created, setCreated] = useState<EvalSpec[]>([]);
+  const [gapBorn, setGapBorn] = useState<EvalRow[]>([]);
+  // checks of the last <=5 verdict-bearing runs, oldest -> newest
+  const [history, setHistory] = useState<CheckResult[][]>([]);
+  const [created, setCreated] = useState<EvalRow[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
 
   // The suite lives in atlas.yaml; the newest verdict-bearing run carries its
-  // resolved spec (and the measured checks).
+  // resolved spec. The last-5 delta history comes from those runs' verdicts.
   useEffect(() => {
     let alive = true;
     (async () => {
       const runs = await listRuns(repoName);
-      const withVerdict = runs.find((r) => r.verdict !== null);
-      if (!withVerdict) {
+      const done = runs
+        .filter((r) => r.verdict !== null)
+        .slice(0, HISTORY_N); // listRuns is newest first
+      if (done.length === 0) {
         if (alive) setEvals([]);
         return;
       }
-      try {
-        const detail = await getRun(withVerdict.run);
-        if (!alive) return;
-        setEvals(detail.spec.evals);
-        setLastChecks(detail.verdict?.checks ?? []);
-      } catch {
-        if (alive) setEvals([]);
-      }
+      const details = await Promise.all(
+        done.map((r) => getRun(r.run).catch(() => null)),
+      );
+      if (!alive) return;
+      const newest = details[0];
+      setEvals(newest?.spec.evals ?? []);
+      setHistory(
+        details
+          .slice()
+          .reverse() // oldest -> newest
+          .map((d) => d?.verdict?.checks ?? []),
+      );
     })();
+    listGapBornEvals(repoName).then((gs) => {
+      if (alive)
+        setGapBorn(
+          gs.map((g) => ({
+            name: g.name,
+            cmd: g.cmd,
+            checks: g.checks,
+            origin: g.origin,
+          })),
+        );
+    });
     return () => {
       alive = false;
     };
   }, [repoName]);
 
-  const rows = useMemo(() => {
-    const specRows = evals ?? [];
-    const fallback =
+  const rows = useMemo<EvalRow[]>(() => {
+    const specRows: EvalRow[] = (evals ?? []).map((e) => ({
+      ...e,
+      origin: "seed" as const,
+    }));
+    const have = new Set(specRows.map((e) => e.name));
+    const fallback: EvalRow[] =
       specRows.length === 0 && repo
-        ? repo.evals.map((n) => ({ name: n, cmd: "", checks: {} }) as EvalSpec)
+        ? repo.evals.map(
+            (n) => ({ name: n, cmd: "", checks: {}, origin: "seed" }) as EvalRow,
+          )
         : [];
-    return [...specRows, ...fallback, ...created];
-  }, [evals, repo, created]);
+    return [
+      ...specRows,
+      ...fallback,
+      ...gapBorn.filter((g) => !have.has(g.name)),
+      ...created,
+    ];
+  }, [evals, repo, gapBorn, created]);
 
-  const lastFor = (evalName: string): number | null => {
-    const c = lastChecks.find(
-      (c) => c.eval === evalName && c.metric === "tokens_per_s",
-    );
-    return c?.delta_pct ?? null;
+  // One point per past review: the eval's primary metric (tokens/s when the
+  // eval measures it, else its first measured check).
+  const historyFor = (evalName: string): (HistoryPoint | null)[] => {
+    const points = history.map((checks) => {
+      const mine = checks.filter(
+        (c) => c.eval === evalName && c.delta_pct !== undefined,
+      );
+      const primary =
+        mine.find((c) => c.metric === "tokens_per_s") ?? mine[0];
+      return primary
+        ? { pct: primary.delta_pct as number, metric: primary.metric }
+        : null;
+    });
+    // pad on the old side to a fixed 5 columns
+    while (points.length < HISTORY_N) points.unshift(null);
+    return points;
   };
 
   return (
@@ -129,20 +189,39 @@ export default function EvalsPage({
           <TableHeader>
             <TableRow className="border-border-soft hover:bg-transparent">
               <TableHead className="text-[11px] font-normal text-faint">Eval</TableHead>
+              <TableHead className="text-[11px] font-normal text-faint">Origin</TableHead>
               <TableHead className="text-[11px] font-normal text-faint">Command</TableHead>
               <TableHead className="text-[11px] font-normal text-faint">Checks</TableHead>
+              <TableHead className="text-[11px] font-normal text-faint">
+                Last {HISTORY_N} reviews (Δ)
+              </TableHead>
               <TableHead className="text-right text-[11px] font-normal text-faint">
-                Last result
+                Last
               </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {rows.map((e) => {
-              const last = lastFor(e.name);
+              const points = historyFor(e.name);
+              const latest = [...points].reverse().find((p) => p !== null);
               return (
                 <TableRow key={e.name} className="border-border-soft hover:bg-transparent">
                   <TableCell className="font-mono text-xs">{e.name}</TableCell>
-                  <TableCell className="max-w-64">
+                  <TableCell>
+                    {typeof e.origin === "object" && e.origin !== null ? (
+                      <Badge
+                        variant="outline"
+                        className="rounded-full border-live/45 bg-live/10 font-mono text-[10px] text-live"
+                      >
+                        from PR #{e.origin.pr}
+                      </Badge>
+                    ) : (
+                      <span className="text-[11px] text-faint">
+                        {e.origin === "manual" ? "manual" : "seed"}
+                      </span>
+                    )}
+                  </TableCell>
+                  <TableCell className="max-w-56">
                     <span className="block truncate font-mono text-[10.5px] text-faint">
                       {e.cmd || "—"}
                     </span>
@@ -169,11 +248,49 @@ export default function EvalsPage({
                       ))}
                     </span>
                   </TableCell>
+                  <TableCell>
+                    <span className="whitespace-nowrap font-mono text-[10px] tabular-nums text-faint">
+                      {points.map((p, i) => (
+                        <span key={i}>
+                          {i > 0 && <span className="text-faint"> · </span>}
+                          {p === null ? (
+                            "—"
+                          ) : (
+                            <span
+                              className={cn(
+                                deltaTone(p.pct, p.metric) === "bad" &&
+                                  "text-bad",
+                                deltaTone(p.pct, p.metric) === "good" &&
+                                  "text-ok",
+                                i === points.length - 1 &&
+                                  "font-semibold text-[10.5px]",
+                              )}
+                            >
+                              {p.pct > 0 ? "+" : ""}
+                              {p.pct.toFixed(1)}
+                            </span>
+                          )}
+                        </span>
+                      ))}
+                    </span>
+                  </TableCell>
                   <TableCell className="text-right text-xs">
-                    {last === null ? (
-                      <span className="text-faint">—</span>
+                    {latest ? (
+                      <span
+                        className={cn(
+                          "font-mono tabular-nums",
+                          deltaTone(latest.pct, latest.metric) === "bad" &&
+                            "text-bad",
+                          deltaTone(latest.pct, latest.metric) === "good" &&
+                            "text-ok",
+                          deltaTone(latest.pct, latest.metric) === "neutral" &&
+                            "text-foreground/80",
+                        )}
+                      >
+                        {fmtDelta(latest.pct)}
+                      </span>
                     ) : (
-                      <Delta pct={last} tone={lastResultTone(last)} />
+                      <span className="text-faint">—</span>
                     )}
                   </TableCell>
                 </TableRow>
@@ -181,7 +298,7 @@ export default function EvalsPage({
             })}
             {rows.length === 0 && (
               <TableRow className="border-border-soft hover:bg-transparent">
-                <TableCell colSpan={4} className="py-6 text-center text-xs text-faint">
+                <TableCell colSpan={6} className="py-6 text-center text-xs text-faint">
                   no evals
                 </TableCell>
               </TableRow>
@@ -195,7 +312,9 @@ export default function EvalsPage({
           repo={repo}
           open={dialogOpen}
           onOpenChange={setDialogOpen}
-          onCreate={(spec) => setCreated((cs) => [...cs, spec])}
+          onCreate={(spec) =>
+            setCreated((cs) => [...cs, { ...spec, origin: "manual" }])
+          }
         />
       )}
     </div>

@@ -7,6 +7,11 @@
 import { use, useEffect, useMemo, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Tooltip,
@@ -21,7 +26,7 @@ import { StatusDot, verdictDot } from "@/components/status-dot";
 import { Trace } from "@/components/trace";
 import { useRepoShell } from "@/components/repo-shell";
 import { getEvents, getReport, getRun, isMock } from "@/lib/api";
-import { fmtCost, shortSha } from "@/lib/format";
+import { fmtClock, fmtCost, shortSha } from "@/lib/format";
 import { STATUS_CHIPS, statusFromEvents } from "@/lib/phases";
 import { cn } from "@/lib/utils";
 import type {
@@ -73,7 +78,7 @@ export default function ReviewPage({
   params: Promise<{ owner: string; name: string; id: string }>;
 }) {
   const { owner, name, id } = use(params);
-  const { repo, setCrumbs, setTopbarRight } = useRepoShell();
+  const { repo, branches, setCrumbs, setTopbarRight } = useRepoShell();
   const [detail, setDetail] = useState<RunDetail | null>(null);
   const [events, setEvents] = useState<AtlasEvent[]>([]);
   const [report, setReport] = useState<Report | null>(null);
@@ -198,6 +203,18 @@ export default function ReviewPage({
   const claim = verdict?.claim?.text ?? spec?.claim;
   const currentIdx = STATUS_CHIPS.findIndex((c) => c.status === status);
   const dot = verdictDot(verdictVisible ? (verdict?.verdict ?? null) : null, status);
+  const prNumber = branch
+    ? (branches.find((b) => b.name === branch)?.pr?.number ?? null)
+    : null;
+
+  // one band: id · change · verdict · hardware · wall · lifecycle
+  const wallS =
+    visible.length >= 2
+      ? (new Date(visible[visible.length - 1].t).getTime() -
+          new Date(visible[0].t).getTime()) /
+        1000
+      : null;
+  const gpuSeconds = cost !== null ? Math.round(cost / GPU_USD_PER_S) : null;
 
   return (
     <div className="space-y-3">
@@ -207,40 +224,38 @@ export default function ReviewPage({
           {headLabel} → {baseLabel}
         </span>
         <StatusDot state={dot.state} label={dot.label} className="text-xs" />
-        {isMock && events.length > 0 && (
-          <Button
-            size="xs"
-            variant="outline"
-            onClick={startReplay}
-            disabled={replaying}
-            className="ml-auto"
-          >
-            {replaying ? "Replaying…" : "Replay as live"}
-          </Button>
-        )}
-      </div>
-
-      <div className="flex flex-wrap items-center gap-1">
-        {STATUS_CHIPS.map((chip, i) => (
-          <span key={chip.status} className="flex items-center gap-1">
-            <Badge
-              variant="outline"
-              className={cn(
-                "rounded-full font-mono text-[10px]",
-                i === currentIdx
-                  ? "border-live/45 bg-live/10 text-live"
-                  : i < currentIdx
-                    ? "text-muted-foreground"
-                    : "border-border-soft text-faint",
-              )}
-            >
-              {chip.status}
-            </Badge>
-            {i < STATUS_CHIPS.length - 1 && (
-              <span className="text-[10px] text-faint">→</span>
-            )}
+        <span className="ml-auto flex items-center gap-3">
+          <span className="font-mono text-[10.5px] text-faint">
+            {spec?.gpu ?? "—"} · {spec?.evals.length ?? "—"}{" "}
+            {spec?.evals.length === 1 ? "eval" : "evals"}
+            {wallS !== null ? ` · wall ${fmtClock(wallS)}` : ""}
+            {gpuSeconds !== null ? ` · ${gpuSeconds} GPU-s` : ""}
+            {" · "}
+            {STATUS_CHIPS.map((chip, i) => (
+              <span key={chip.status}>
+                {i > 0 && "→"}
+                <span
+                  className={cn(
+                    i === currentIdx && "font-semibold text-foreground",
+                    i > currentIdx && "opacity-50",
+                  )}
+                >
+                  {chip.status}
+                </span>
+              </span>
+            ))}
           </span>
-        ))}
+          {isMock && events.length > 0 && (
+            <Button
+              size="xs"
+              variant="outline"
+              onClick={startReplay}
+              disabled={replaying}
+            >
+              {replaying ? "Replaying…" : "Replay as live"}
+            </Button>
+          )}
+        </span>
       </div>
 
       <Tabs defaultValue="verdict">
@@ -252,23 +267,95 @@ export default function ReviewPage({
         </TabsList>
 
         <TabsContent value="verdict" className="pt-2">
-          {claim && (
-            <blockquote className="border-l-2 border-border py-1 pl-3 text-xs italic text-muted-foreground">
-              “{claim}”
-              {verdictVisible && verdict?.claim?.verified === false && (
-                <span className="not-italic text-bad">
-                  {" "}
-                  — not true by measurement
-                </span>
-              )}
-            </blockquote>
-          )}
           {verdictVisible && verdict ? (
-            <div className="mt-2">
+            <div className="grid grid-cols-[1fr_320px] items-start gap-4 max-md:grid-cols-1">
               <ChecksTable verdict={verdict} />
+              <div className="space-y-2.5">
+                {claim && (
+                  <blockquote className="border-l-2 border-border py-1 pl-3 text-xs italic text-muted-foreground">
+                    “{claim}”
+                    {verdict.claim?.verified === false && (
+                      <span className="not-italic text-bad">
+                        {" "}
+                        — not true by measurement
+                      </span>
+                    )}
+                  </blockquote>
+                )}
+                {reportVisible &&
+                  report?.investigation?.diagnosis?.text && (
+                    <div className="rounded-lg border border-border-soft p-3">
+                      <p className="flex items-center gap-2 text-[11.5px] font-medium">
+                        Diagnosis
+                        {report.investigation.diagnosis.confidence && (
+                          <Badge
+                            variant="outline"
+                            className="rounded-full font-mono text-[10px] text-muted-foreground"
+                          >
+                            {report.investigation.diagnosis.confidence}{" "}
+                            confidence
+                          </Badge>
+                        )}
+                      </p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {report.investigation.diagnosis.text}
+                      </p>
+                    </div>
+                  )}
+                {prNumber !== null && (
+                  <div className="flex items-center justify-between gap-3 rounded-lg border border-border-soft px-3 py-2">
+                    <p className="min-w-0 text-[11px] text-muted-foreground">
+                      Results anchored on the diff
+                    </p>
+                    <Button
+                      size="xs"
+                      variant="outline"
+                      nativeButton={false}
+                      render={
+                        // eslint-disable-next-line jsx-a11y/anchor-has-content
+                        <a
+                          href={`/repo/${owner}/${name}/prs/${prNumber}`}
+                        />
+                      }
+                    >
+                      Open PR #{prNumber}
+                    </Button>
+                  </div>
+                )}
+                {reportVisible &&
+                  report?.investigation?.fix_context &&
+                  Object.keys(report.investigation.fix_context).length > 0 && (
+                    <Collapsible>
+                      <div className="rounded-lg border border-border-soft px-3 py-2">
+                        <CollapsibleTrigger className="flex w-full items-center justify-between gap-3 text-left">
+                          <span className="font-mono text-[10.5px] text-muted-foreground">
+                            fix_context.json — for the coding agent
+                          </span>
+                          <span className="text-[10px] text-faint">expand</span>
+                        </CollapsibleTrigger>
+                        <CollapsibleContent>
+                          <pre className="mt-2 overflow-x-auto font-mono text-[10px] leading-relaxed text-muted-foreground">
+                            {JSON.stringify(
+                              report.investigation.fix_context,
+                              null,
+                              2,
+                            )}
+                          </pre>
+                        </CollapsibleContent>
+                      </div>
+                    </Collapsible>
+                  )}
+              </div>
             </div>
           ) : (
-            <p className="mt-3 text-xs text-faint">verdict pending</p>
+            <>
+              {claim && (
+                <blockquote className="border-l-2 border-border py-1 pl-3 text-xs italic text-muted-foreground">
+                  “{claim}”
+                </blockquote>
+              )}
+              <p className="mt-3 text-xs text-faint">verdict pending</p>
+            </>
           )}
         </TabsContent>
 

@@ -3,7 +3,7 @@
 // Reviews — full log (wireframe screen 7): search + branch + verdict filters
 // over every run; live rows refresh until done.
 
-import { use, useEffect, useMemo, useState } from "react";
+import { use, useEffect, useMemo, useRef, useState } from "react";
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
@@ -14,9 +14,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { RunsTable } from "@/components/runs-table";
+import { RunsTable, type RunExtras } from "@/components/runs-table";
 import { useRepoShell } from "@/components/repo-shell";
-import { listRuns } from "@/lib/api";
+import { getRun, listRuns } from "@/lib/api";
+import { fmtCost } from "@/lib/format";
 import type { RunSummary } from "@/lib/types";
 
 const ALL = "__all__";
@@ -31,6 +32,7 @@ export default function ReviewsPage({
   const { repo, runsVersion } = useRepoShell();
 
   const [runs, setRuns] = useState<RunSummary[] | null>(null);
+  const [extras, setExtras] = useState<Record<string, RunExtras>>({});
   const [query, setQuery] = useState("");
   const [branch, setBranch] = useState(ALL);
   const [verdict, setVerdict] = useState(ALL);
@@ -38,6 +40,23 @@ export default function ReviewsPage({
   useEffect(() => {
     listRuns(repoName).then(setRuns);
   }, [repoName, runsVersion]);
+
+  // Evals/GPU columns come from each run's resolved spec; fetch once per run.
+  const fetchedExtras = useRef(new Set<string>());
+  useEffect(() => {
+    runs?.forEach((r) => {
+      if (fetchedExtras.current.has(r.run)) return;
+      fetchedExtras.current.add(r.run);
+      getRun(r.run)
+        .then((d) =>
+          setExtras((m) => ({
+            ...m,
+            [r.run]: { evals: d.spec.evals.length, gpu: d.spec.gpu },
+          })),
+        )
+        .catch(() => {});
+    });
+  }, [runs]);
 
   // Status refresh: while any run is live, refetch the log.
   useEffect(() => {
@@ -142,6 +161,12 @@ export default function ReviewsPage({
             </SelectItem>
           </SelectContent>
         </Select>
+        {runs && (
+          <span className="ml-auto text-[11px] text-faint">
+            {runs.length} {runs.length === 1 ? "review" : "reviews"} ·{" "}
+            {fmtCost(runs.reduce((acc, r) => acc + (r.cost_usd ?? 0), 0))} total
+          </span>
+        )}
       </div>
 
       {visible === null ? (
@@ -155,6 +180,7 @@ export default function ReviewsPage({
           repoName={repoName}
           runs={visible}
           baseLabel={repo?.default_branch}
+          extras={extras}
         />
       )}
     </div>

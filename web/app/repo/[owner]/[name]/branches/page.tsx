@@ -1,9 +1,10 @@
 "use client";
 
-// Branches & PRs (wireframe screen 3): base selector + search over the merged
-// branch/PR list; every state is relative to the selected base.
+// Branches & PRs (wireframe-v3 screen 9): base selector + search; sub-lines
+// carry sha/age, the Risks column ties triage in, and each row offers Test
+// (opens the change's session) and Review (formal run).
 
-import { use, useEffect, useMemo, useState } from "react";
+import { use, useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Search } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -27,8 +28,25 @@ import {
 } from "@/components/ui/table";
 import { StatusDot, branchStateDot } from "@/components/status-dot";
 import { useRepoShell } from "@/components/repo-shell";
-import { getBranches } from "@/lib/api";
-import type { BranchInfo } from "@/lib/types";
+import {
+  createSession,
+  getBranches,
+  getSession,
+  listRuns,
+  listSessions,
+} from "@/lib/api";
+import { fmtCost } from "@/lib/format";
+import type {
+  Annotation,
+  BranchInfo,
+  RunSummary,
+  SessionSummary,
+} from "@/lib/types";
+
+interface RiskSummary {
+  total: number;
+  gaps: number;
+}
 
 export default function BranchesPage({
   params,
@@ -43,6 +61,11 @@ export default function BranchesPage({
   const [baseChoice, setBaseChoice] = useState<string | null>(null);
   const base = baseChoice ?? repo?.default_branch ?? null;
   const [rows, setRows] = useState<BranchInfo[] | null>(null);
+  const [runs, setRuns] = useState<RunSummary[]>([]);
+  const [sessions, setSessions] = useState<SessionSummary[]>([]);
+  const [risksBySession, setRisksBySession] = useState<
+    Record<string, RiskSummary>
+  >({});
   const [query, setQuery] = useState("");
 
   useEffect(() => {
@@ -57,12 +80,67 @@ export default function BranchesPage({
     };
   }, [repoName, base]);
 
+  useEffect(() => {
+    listRuns(repoName).then(setRuns).catch(() => {});
+    listSessions(repoName).then((ss) => {
+      setSessions(ss);
+      ss.forEach((s) =>
+        getSession(s.session)
+          .then((d) => {
+            const anns: Annotation[] = d.triage ?? [];
+            if (anns.length > 0)
+              setRisksBySession((m) => ({
+                ...m,
+                [s.session]: {
+                  total: anns.length,
+                  gaps: anns.filter((a) => a.coverage === "gap").length,
+                },
+              }));
+          })
+          .catch(() => {}),
+      );
+    });
+  }, [repoName]);
+
   const baseOptions = useMemo(() => {
     const set = new Set<string>();
     if (repo?.default_branch) set.add(repo.default_branch);
     allBranches.forEach((b) => set.add(b.name));
     return [...set];
   }, [repo, allBranches]);
+
+  const costByBranch = useMemo(() => {
+    const m = new Map<string, number>();
+    runs.forEach((r) => {
+      if (r.branch) m.set(r.branch, (m.get(r.branch) ?? 0) + (r.cost_usd ?? 0));
+    });
+    return m;
+  }, [runs]);
+
+  const sessionFor = useCallback(
+    (b: BranchInfo): SessionSummary | undefined =>
+      sessions.find(
+        (s) =>
+          (b.pr && s.pr?.number === b.pr.number) || s.branch === b.name,
+      ),
+    [sessions],
+  );
+
+  // Test = open the change's session (create one when none exists yet).
+  const openTest = useCallback(
+    async (b: BranchInfo) => {
+      if (b.pr) {
+        router.push(`/repo/${owner}/${name}/prs/${b.pr.number}`);
+        return;
+      }
+      const existing = sessionFor(b);
+      const id = existing
+        ? existing.session
+        : (await createSession(repoName, { branch: b.name })).session;
+      router.push(`/repo/${owner}/${name}/sessions/${id}`);
+    },
+    [router, owner, name, repoName, sessionFor],
+  );
 
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -104,6 +182,12 @@ export default function BranchesPage({
             className="h-7 w-52 pl-8 text-xs"
           />
         </div>
+        {rows && (
+          <span className="ml-auto text-[11px] text-faint">
+            {rows.length} {rows.length === 1 ? "branch" : "branches"} ·{" "}
+            {rows.filter((b) => b.pr).length} PRs
+          </span>
+        )}
       </div>
 
       {visible === null ? (
@@ -119,13 +203,17 @@ export default function BranchesPage({
               <TableHead className="text-[11px] font-normal text-faint">Branch</TableHead>
               <TableHead className="text-[11px] font-normal text-faint">Claim</TableHead>
               <TableHead className="text-[11px] font-normal text-faint">vs {base}</TableHead>
+              <TableHead className="text-[11px] font-normal text-faint">Risks</TableHead>
               <TableHead className="text-[11px] font-normal text-faint">Reviews</TableHead>
+              <TableHead className="text-[11px] font-normal text-faint">Cost</TableHead>
               <TableHead />
             </TableRow>
           </TableHeader>
           <TableBody>
             {visible.map((b) => {
               const s = branchStateDot(b);
+              const sess = sessionFor(b);
+              const risks = sess ? risksBySession[sess.session] : undefined;
               return (
                 <TableRow
                   key={b.name}
@@ -136,17 +224,24 @@ export default function BranchesPage({
                   }
                   className="cursor-pointer border-border-soft"
                 >
-                  <TableCell className="font-mono text-xs">
-                    <span className="inline-flex items-center gap-2">
+                  <TableCell>
+                    <span className="inline-flex items-center gap-2 font-mono text-xs">
                       {b.name}
                       {b.pr && (
-                        <Badge variant="outline" className="rounded-full font-mono text-[10px] text-live">
+                        <Badge
+                          variant="outline"
+                          className="rounded-full border-live/45 bg-live/10 font-mono text-[10px] text-live"
+                        >
                           PR #{b.pr.number}
                         </Badge>
                       )}
                     </span>
+                    <span className="mt-0.5 block font-mono text-[9.5px] text-faint">
+                      {b.sha}
+                      {b.last_review ? ` · ${fmtRelativeShort(b.last_review.t)}` : ""}
+                    </span>
                   </TableCell>
-                  <TableCell className="max-w-72">
+                  <TableCell className="max-w-56">
                     {b.pr?.claim ? (
                       <span className="block truncate text-xs italic text-muted-foreground">
                         “{b.pr.claim}”
@@ -158,27 +253,58 @@ export default function BranchesPage({
                   <TableCell className="text-xs">
                     <StatusDot state={s.state} label={s.label} />
                   </TableCell>
+                  <TableCell className="font-mono text-xs">
+                    {risks ? (
+                      risks.gaps > 0 ? (
+                        <span>
+                          {risks.total} ·{" "}
+                          <span className="text-note">
+                            {risks.gaps} gap→eval
+                          </span>
+                        </span>
+                      ) : (
+                        `${risks.total} · covered`
+                      )
+                    ) : (
+                      <span className="text-faint">—</span>
+                    )}
+                  </TableCell>
                   <TableCell className="font-mono text-xs tabular-nums">
                     {b.reviews_count}
                   </TableCell>
+                  <TableCell className="font-mono text-xs tabular-nums">
+                    {fmtCost(costByBranch.get(b.name) ?? 0)}
+                  </TableCell>
                   <TableCell className="text-right">
-                    <Button
-                      size="xs"
-                      variant="outline"
-                      onClick={(e: React.MouseEvent) => {
-                        e.stopPropagation();
-                        openNewReview(b.name);
-                      }}
-                    >
-                      Review
-                    </Button>
+                    <span className="inline-flex gap-1.5">
+                      <Button
+                        size="xs"
+                        variant="outline"
+                        onClick={(e: React.MouseEvent) => {
+                          e.stopPropagation();
+                          openTest(b);
+                        }}
+                      >
+                        Test
+                      </Button>
+                      <Button
+                        size="xs"
+                        variant="outline"
+                        onClick={(e: React.MouseEvent) => {
+                          e.stopPropagation();
+                          openNewReview(b.name);
+                        }}
+                      >
+                        Review
+                      </Button>
+                    </span>
                   </TableCell>
                 </TableRow>
               );
             })}
             {visible.length === 0 && (
               <TableRow className="border-border-soft hover:bg-transparent">
-                <TableCell colSpan={5} className="py-6 text-center text-xs text-faint">
+                <TableCell colSpan={7} className="py-6 text-center text-xs text-faint">
                   no branches
                 </TableCell>
               </TableRow>
@@ -188,4 +314,14 @@ export default function BranchesPage({
       )}
     </div>
   );
+}
+
+function fmtRelativeShort(iso: string): string {
+  const ms = Date.now() - new Date(iso).getTime();
+  if (ms < 45_000) return "now";
+  const m = Math.round(ms / 60_000);
+  if (m < 60) return `${m}m`;
+  const h = Math.round(m / 60);
+  if (h < 24) return `${h}h`;
+  return `${Math.round(h / 24)}d`;
 }
