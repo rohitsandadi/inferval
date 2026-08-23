@@ -259,10 +259,10 @@ def repos():
         row = _run_row(r)
         matched = [e for e in entries if _repo_matches(r["spec"].get("repo", ""),
                                                        e["name"])]
-        if not matched:  # a run for a repo repos.json doesn't know
-            entries.append({"name": r["spec"].get("repo", "?"), "evals": [],
-                            "runs_count": 0, "last_run": None})
-            matched = [entries[-1]]
+        if not matched:  # orphan run (e.g. a CLI/ephemeral spec with a raw
+            continue     # URL): count it nowhere rather than synthesize a
+                         # phantom repo card; connected repos come only from
+                         # repos.json + repos.d.
         for e in matched:
             e["runs_count"] += 1
             e["last_run"] = {"run": row["run"], "verdict": row["verdict"],
