@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { connectRepo, githubLoginUrl, githubRepos, isMock } from "@/lib/api";
+import { Input } from "@/components/ui/input";
 import { fmtRelative } from "@/lib/format";
 import type { GithubRepo, GithubStatus } from "@/lib/types";
 
@@ -36,6 +37,25 @@ export function ConnectRepoDialog({
   const [repos, setRepos] = useState<GithubRepo[] | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [added, setAdded] = useState<string[]>([]);
+  const [publicName, setPublicName] = useState("");
+
+  const addPublic = async () => {
+    const name = publicName.trim();
+    if (!/^[\w.-]+\/[\w.-]+$/.test(name)) {
+      toast("Use the owner/repo form");
+      return;
+    }
+    setBusy(name);
+    try {
+      await connectRepo(name);
+      setAdded((a) => [...a, name]);
+      setPublicName("");
+      toast(`${name} connected`);
+      onConnected();
+    } finally {
+      setBusy(null);
+    }
+  };
 
   useEffect(() => {
     if (open && gh?.connected) githubRepos().then(setRepos).catch(() => setRepos([]));
@@ -54,6 +74,24 @@ export function ConnectRepoDialog({
               : "Connect your GitHub account to pick a repo."}
           </DialogDescription>
         </DialogHeader>
+        <div className="flex items-center gap-2">
+          <Input
+            value={publicName}
+            onChange={(e) => setPublicName(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && addPublic()}
+            placeholder="Public repo: owner/repo"
+            className="h-8 font-mono text-xs"
+            disabled={isMock}
+          />
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={isMock || busy !== null || !publicName.trim()}
+            onClick={addPublic}
+          >
+            Add
+          </Button>
+        </div>
         {!gh?.connected ? (
           <div className="flex justify-end">
             <Button

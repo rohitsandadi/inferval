@@ -39,11 +39,12 @@ def _default_exchange(code: str) -> str:
     return token
 
 
-def _default_gh_get(path: str, token: str):
+def _default_gh_get(path: str, token: str | None):
     import httpx
-    r = httpx.get(f"https://api.github.com{path}",
-                  headers={"Authorization": f"Bearer {token}",
-                           "Accept": "application/vnd.github+json"},
+    headers = {"Accept": "application/vnd.github+json"}
+    if token:  # unauthenticated works for public repos (60 req/h)
+        headers["Authorization"] = f"Bearer {token}"
+    r = httpx.get(f"https://api.github.com{path}", headers=headers,
                   timeout=10)
     r.raise_for_status()
     return r.json()
@@ -149,13 +150,11 @@ def connect_repo(body: dict):
     if not re.fullmatch(r"[\w.-]+/[\w.-]+", name):
         raise HTTPException(422, "name must be owner/repo")
     default_branch = body.get("default_branch") or "main"
-    tok = current_token()
-    if tok:
-        try:
-            default_branch = gh_get(f"/repos/{name}", tok).get(
-                "default_branch", default_branch)
-        except Exception:
-            pass  # connect still succeeds; branch facts can be fixed later
+    try:  # token or not — public repos resolve unauthenticated
+        default_branch = gh_get(f"/repos/{name}", current_token()).get(
+            "default_branch", default_branch)
+    except Exception:
+        pass  # connect still succeeds; branch facts can be fixed later
     entry = {"name": name, "url": f"https://github.com/{name}",
              "description": "", "gpu": "A10G", "image": "atlas-torch-2.8.0",
              "correctness": "token_ids_match", "overrides": [],
