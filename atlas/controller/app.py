@@ -33,7 +33,8 @@ except Exception:
 # (harness_image(ROOT)) from inside its own container.
 CONTROLLER_IMAGE = (
     modal.Image.debian_slim(python_version="3.12")
-    .pip_install("fastapi==0.141.1", "pyyaml==6.0.3", "openai==3.3.1",
+    .pip_install("fastapi==0.141.1", "pyyaml==6.0.3", "httpx==0.28.1",
+                 "openai==3.3.1",
                  "openai-agents==0.22.0")
     .env({"ATLAS_ON_MODAL": "1",  # api.py: reload the runs Volume on reads
           "ATLAS_FRONTEND_URL": "https://inferval.vercel.app"})
