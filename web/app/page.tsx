@@ -28,7 +28,6 @@ import { Delta } from "@/components/atoms";
 import {
   getBranches,
   githubLoginUrl,
-  isMock,
   listRuns,
 } from "@/lib/api";
 import {
@@ -142,7 +141,7 @@ export default function HomePage() {
                 </span>
                 <i className="size-1.5 rounded-full bg-ok" aria-hidden />
               </div>
-            ) : !isMock ? (
+            ) : (
               <Button
                 size="sm"
                 variant="outline"
@@ -154,11 +153,6 @@ export default function HomePage() {
                 <GitHubMark data-icon="inline-start" />
                 Connect GitHub
               </Button>
-            ) : (
-              <div className="inline-flex h-8 items-center gap-2 rounded-lg border border-border bg-card px-3 text-xs text-muted-foreground">
-                <GitHubMark />
-                Demo data
-              </div>
             )}
             <Button size="sm" onClick={() => setPickerOpen(true)}>
               <Plus data-icon="inline-start" />

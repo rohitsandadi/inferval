@@ -23,7 +23,6 @@ import { Delta } from "@/components/atoms";
 import { agentPrompt } from "@/components/agent-prompt";
 import { useRepoShell } from "@/components/repo-shell";
 import {
-  useGapBornEvalsQuery,
   useRunsQuery,
   useSandboxesQuery,
   useSessionsQuery,
@@ -75,10 +74,8 @@ export default function OverviewPage({
   const { data: runsData } = useRunsQuery(repoName);
   const { data: sandboxesData = [] } = useSandboxesQuery(repoName);
   const { data: sessions = [] } = useSessionsQuery(repoName);
-  const { data: gapBornData = [] } = useGapBornEvalsQuery(repoName);
   const runs = runsData ?? null;
   const sandboxes = sandboxesData;
-  const gapBorn = gapBornData.length;
 
   const changes = useMemo(
     () => branches.filter((b) => b.reviews_count > 0),
@@ -225,8 +222,7 @@ export default function OverviewPage({
         <div className="rounded-xl border border-border-soft bg-card px-4 py-4 shadow-sm">
           <p className="text-xs font-medium text-muted-foreground">Suite</p>
           <p className="mt-2 text-base font-semibold">
-            {repo.evals.length + gapBorn} evals
-            {gapBorn > 0 ? ` · ${gapBorn} gap-born` : ""}
+            {repo.evals.length} evals
           </p>
         </div>
         <div className="rounded-xl border border-border-soft bg-card px-4 py-4 shadow-sm">

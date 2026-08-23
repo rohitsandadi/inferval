@@ -1,10 +1,9 @@
 "use client";
 
 // Review detail (wireframe screens 8–11): header facts + lifecycle chain,
-// then Verdict / Proposals / Trace / Report tabs. Event polling and replay
-// are unchanged from the pre-tabs page.
+// then Verdict / Proposals / Trace / Report tabs.
 
-import { use, useEffect, useMemo, useRef, useState } from "react";
+import { use, useEffect, useMemo } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -27,7 +26,6 @@ import { RunPipeline } from "@/components/run-pipeline";
 import { StatusDot, verdictDot } from "@/components/status-dot";
 import { Trace } from "@/components/trace";
 import { useRepoShell } from "@/components/repo-shell";
-import { isMock } from "@/lib/api";
 import {
   useEventsQuery,
   useReportQuery,
@@ -40,7 +38,6 @@ import type {
   Investigation,
 } from "@/lib/types";
 
-const REPLAY_MS = 450;
 const GPU_USD_PER_S = 1.1 / 3600; // A10G on-demand ballpark; display only
 
 function deriveProposals(
@@ -92,43 +89,14 @@ export default function ReviewPage({
   const detail = detailData ?? null;
   const events = eventsData;
   const report = reportData ?? null;
-  const [visibleCount, setVisibleCount] = useState<number | null>(null); // null = all
-  const [replaying, setReplaying] = useState(false);
-  const replayTimer = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  // replay: reveal the feed one event at a time, as if live
-  const startReplay = () => {
-    if (replayTimer.current) clearInterval(replayTimer.current);
-    setReplaying(true);
-    setVisibleCount(0);
-    replayTimer.current = setInterval(() => {
-      setVisibleCount((n) => {
-        const next = (n ?? 0) + 1;
-        if (next >= events.length) {
-          if (replayTimer.current) clearInterval(replayTimer.current);
-          setReplaying(false);
-          return null;
-        }
-        return next;
-      });
-    }, REPLAY_MS);
-  };
-  useEffect(
-    () => () => {
-      if (replayTimer.current) clearInterval(replayTimer.current);
-    },
-    [],
-  );
-
-  const visible = visibleCount === null ? events : events.slice(0, visibleCount);
-  const status = useMemo(() => statusFromEvents(visible), [visible]);
+  const status = useMemo(() => statusFromEvents(events), [events]);
   const verdictVisible =
-    detail?.verdict != null && visible.some((e) => e.kind === "verdict");
+    detail?.verdict != null && events.some((e) => e.kind === "verdict");
   const reportVisible =
-    report != null && visible.some((e) => e.kind === "report_ready");
+    report != null && events.some((e) => e.kind === "report_ready");
   const proposals = useMemo(
-    () => deriveProposals(visible, report?.investigation, reportVisible),
-    [visible, report, reportVisible],
+    () => deriveProposals(events, report?.investigation, reportVisible),
+    [events, report, reportVisible],
   );
 
   const spec = detail?.spec;
@@ -237,9 +205,9 @@ export default function ReviewPage({
 
   // one band: id · change · verdict · hardware · wall · lifecycle
   const wallS =
-    visible.length >= 2
-      ? (new Date(visible[visible.length - 1].t).getTime() -
-          new Date(visible[0].t).getTime()) /
+    events.length >= 2
+      ? (new Date(events[events.length - 1].t).getTime() -
+          new Date(events[0].t).getTime()) /
         1000
       : null;
   const gpuSeconds = cost !== null ? Math.round(cost / GPU_USD_PER_S) : null;
@@ -259,16 +227,6 @@ export default function ReviewPage({
             {wallS !== null ? ` · wall ${fmtClock(wallS)}` : ""}
             {gpuSeconds !== null ? ` · ${gpuSeconds} GPU-s` : ""}
           </span>
-          {isMock && events.length > 0 && (
-            <Button
-              size="xs"
-              variant="outline"
-              onClick={startReplay}
-              disabled={replaying}
-            >
-              {replaying ? "Replaying…" : "Replay as live"}
-            </Button>
-          )}
         </span>
       </div>
 
@@ -379,7 +337,7 @@ export default function ReviewPage({
         </TabsContent>
 
         <TabsContent value="trace" className="pt-2">
-          <Trace events={visible} />
+          <Trace events={events} />
         </TabsContent>
 
         <TabsContent value="report" className="pt-3">

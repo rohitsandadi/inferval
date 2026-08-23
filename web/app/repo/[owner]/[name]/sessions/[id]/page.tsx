@@ -26,7 +26,6 @@ import {
   type VerdictChip,
 } from "@/components/diff-view";
 import { SessionPane } from "@/components/session-pane";
-import { NewEvalDialog, type EvalPrefill } from "@/components/new-eval-dialog";
 import { useRepoShell } from "@/components/repo-shell";
 import {
   fetchPrDiffFromGitHub,
@@ -136,7 +135,6 @@ export default function SessionPage({
     !cachedDiff.isPending &&
     !(cachedDiff.data === null && Boolean(detail?.pr) && githubDiff.isPending);
   const [activeFile, setActiveFile] = useState<string | null>(null);
-  const [evalDialog, setEvalDialog] = useState<EvalPrefill | null>(null);
 
   useEffect(() => {
     if (events.length === 0) return;
@@ -342,17 +340,6 @@ export default function SessionPage({
 
   const draftByOrigin = new Map(drafts.map((d) => [d.origin, d]));
 
-  const openDraftDialog = (a: Annotation) => {
-    const d = draftByOrigin.get(a.id);
-    setEvalDialog({
-      name: d?.name,
-      cmd: d?.cmd,
-      checks: d?.checks,
-      est_gpu_seconds: d?.est_gpu_seconds,
-      provenance: `Prefilled from gap ${a.id}${pr ? ` · PR #${pr.number}` : ""} · session ${id}`,
-    });
-  };
-
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       {/* PR header band */}
@@ -515,7 +502,6 @@ export default function SessionPage({
               file={file}
               annotations={annotations}
               chips={chips}
-              onDraftEval={openDraftDialog}
             />
           ) : (
             <p className="py-8 text-center text-xs text-faint">
@@ -655,15 +641,6 @@ export default function SessionPage({
         </div>
       </div>
 
-      {repo && (
-        <NewEvalDialog
-          repo={repo}
-          open={evalDialog !== null}
-          onOpenChange={(o) => !o && setEvalDialog(null)}
-          onCreate={() => setEvalDialog(null)}
-          prefill={evalDialog}
-        />
-      )}
     </div>
   );
 }
