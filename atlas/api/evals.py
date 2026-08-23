@@ -8,21 +8,13 @@ an agent can define a repo's evals without touching the repo itself.
 """
 import json
 import os
-import re
 
 from fastapi import APIRouter, HTTPException
 
+from atlas.contracts.evalspec import validate_eval
 from atlas.contracts.names import ENV_RUNS_ROOT
 
 router = APIRouter(prefix="/api")
-
-# Mirrors the referee's metric registry (atlas/referee/policy.py); kept in
-# sync by hand so an unknown metric fails here, not as an invalid verdict.
-KNOWN_METRICS = ("tokens_per_s", "latency_ms_median", "latency_ms_p95",
-                 "peak_vram_mb")
-REL_RE = re.compile(r"^[+-]\d+(\.\d+)?%$")
-ABS_RE = re.compile(r"^(<=|>=|<|>)\d+(\.\d+)?$")
-NAME_RE = re.compile(r"^[a-z][a-z0-9_]{1,40}$")
 
 
 def _runs_root() -> str:
@@ -94,35 +86,12 @@ def create_eval(name: str, body: dict):
     origin?}. checks: metric -> \"+15%\"/\"-10%\"; absolute: metric -> \"<3000\"."""
     if name not in _load_repo_names():
         raise HTTPException(404, f"unknown repo: {name}")
-    ev_name = body.get("name") or ""
-    if not NAME_RE.fullmatch(ev_name):
-        raise HTTPException(422, "eval name: lowercase letters, digits, _")
-    cmd = (body.get("cmd") or "").strip()
-    if not cmd or "{out}" not in cmd:
-        raise HTTPException(422, "cmd required and must contain {out}")
-    checks = body.get("checks") or {}
-    absolute = body.get("absolute") or {}
-    if not checks and not absolute:
-        raise HTTPException(422, "at least one check or absolute required")
-    for metric, thr in checks.items():
-        if metric not in KNOWN_METRICS:
-            raise HTTPException(422, f"unknown metric: {metric}")
-        if not isinstance(thr, str) or not REL_RE.fullmatch(thr):
-            raise HTTPException(422, f"bad relative threshold for {metric}: "
-                                     f"{thr!r} (form: \"-10%\" / \"+15%\")")
-    for metric, expr in absolute.items():
-        if metric not in KNOWN_METRICS:
-            raise HTTPException(422, f"unknown metric: {metric}")
-        if not isinstance(expr, str) or not ABS_RE.fullmatch(expr):
-            raise HTTPException(422, f"bad absolute bound for {metric}: "
-                                     f"{expr!r} (form: \"<3000\")")
-    entry = {"name": ev_name, "cmd": cmd, "checks": checks}
-    if absolute:
-        entry["absolute"] = absolute
-    if body.get("origin"):
-        entry["origin"] = body["origin"]  # e.g. "pr:1" for gap-born evals
+    try:
+        entry = validate_eval(body)  # shared rules (contracts/evalspec)
+    except ValueError as e:
+        raise HTTPException(422, str(e))
     os.makedirs(store_dir(name), exist_ok=True)
-    with open(os.path.join(store_dir(name), ev_name + ".json"), "w") as f:
+    with open(os.path.join(store_dir(name), entry["name"] + ".json"), "w") as f:
         json.dump(entry, f)
     _commit_volume()
     return entry

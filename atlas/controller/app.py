@@ -56,13 +56,13 @@ def run_controller(spec: dict) -> dict:
 @app.function(name=CHAT_TURN_FUNCTION, image=CONTROLLER_IMAGE,
               volumes={"/runs": runs, "/cache": cache},
               secrets=[openrouter], timeout=900)
-def chat_turn(chat_id: str, text: str) -> dict:
+def chat_turn(chat_id: str, text: str, directive: bool = False) -> dict:
     try:  # session module lands in parallel; a broken import must not crash
         from atlas.session.loop import run_turn
     except Exception as e:
         return {"chat": chat_id, "ok": False,
                 "error": f"session module unavailable: {e}"}
-    return run_turn(chat_id, "/runs", text, volume=runs)
+    return run_turn(chat_id, "/runs", text, volume=runs, directive=directive)
 
 
 @app.function(image=CONTROLLER_IMAGE,

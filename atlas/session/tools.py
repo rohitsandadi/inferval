@@ -18,6 +18,7 @@ from typing import Any, Callable
 
 from agents import function_tool
 
+from atlas.contracts.evalspec import validate_eval, validate_scoped
 from atlas.contracts.names import (APP_NAME, DICT_APPROVALS, DICT_SANDBOXES,
                                    VOLUME_CACHE, VOLUME_RUNS)
 from atlas.referee.events import append_event
@@ -317,7 +318,8 @@ def _default_post_run(payload: dict) -> str:
 
 
 def submit_review(ctx: SessionContext, base: str, head: str,
-                  evals: list[str] | None = None) -> str:
+                  evals: list[str] | None = None,
+                  include_draft: str | None = None) -> str:
     if ctx.reviews_submitted >= 1:
         return "not submitted: one formal review per turn (ceiling)"
     payload: dict[str, Any] = {"repo": ctx.repo.get("name"), "mode": "compare",
@@ -327,6 +329,29 @@ def submit_review(ctx: SessionContext, base: str, head: str,
         payload["selection"] = "pick"
         payload["evals"] = evals
     pr = (ctx.meta or {}).get("pr") or {}
+
+    draft = None
+    if include_draft:
+        drafts_path = os.path.join(ctx.chat_dir, "drafts.json")
+        try:
+            with open(drafts_path) as f:
+                drafts = json.load(f)
+        except (FileNotFoundError, ValueError):
+            drafts = []
+        draft = next((d for d in drafts if d.get("id") == include_draft), None)
+        if draft is None:
+            return (f"unknown draft {include_draft!r}; known: "
+                    f"{[d.get('id') for d in drafts]}")
+        entry = {"name": draft["name"], "cmd": draft["cmd"],
+                 "checks": draft["checks"]}
+        try:  # re-check at the submission boundary; drafts.json is a file
+            entry = validate_eval(entry)
+            validate_scoped(entry, ctx.repo.get("evals", []))
+        except ValueError as e:
+            return f"draft {include_draft} no longer valid: {e}"
+        if pr.get("number"):
+            entry["origin"] = f"pr:{pr['number']}"
+        payload["extra_evals"] = [entry]
     if pr.get("title"):
         payload["claim"] = pr["title"]
     if (ctx.meta or {}).get("branch"):
@@ -337,10 +362,19 @@ def submit_review(ctx: SessionContext, base: str, head: str,
     except Exception as e:
         return f"review submission failed: {e}"
     ctx.reviews_submitted += 1
-    emit(ctx, "agent", "review_submitted",
-         {"run": run_id, "base": base, "head": head, "evals": evals or "suite"})
-    return (f"review {run_id} submitted; the deterministic pipeline will "
-            "issue the verdict")
+    if draft is not None:
+        draft["status"] = "submitted"
+        draft["run"] = run_id
+        with open(os.path.join(ctx.chat_dir, "drafts.json"), "w") as f:
+            json.dump(drafts, f)
+    detail = {"run": run_id, "base": base, "head": head,
+              "evals": evals or "suite"}
+    if draft is not None:
+        detail["scoped_eval"] = draft["name"]
+    emit(ctx, "agent", "review_submitted", detail)
+    return (f"review {run_id} submitted"
+            + (f" with scoped eval {draft['name']}" if draft else "")
+            + "; the deterministic pipeline will issue the verdict")
 
 
 def draft_eval(ctx: SessionContext, origin: str, name: str, cmd: str,
@@ -355,6 +389,11 @@ def draft_eval(ctx: SessionContext, origin: str, name: str, cmd: str,
         return f"unknown origin annotation {origin!r}; known: {sorted(known)}"
     if name in {e.get("name") for e in ctx.repo.get("evals", [])}:
         return f"an eval named {name!r} already exists in the suite"
+    try:  # scoped-eval contract: declared harness only, ceiling-bounded knobs
+        entry = validate_eval({"name": name, "cmd": cmd, "checks": checks})
+        validate_scoped(entry, ctx.repo.get("evals", []))
+    except ValueError as e:
+        return f"draft rejected: {e}"
 
     drafts_path = os.path.join(ctx.chat_dir, "drafts.json")
     try:
@@ -461,7 +500,8 @@ def make_tools(ctx: SessionContext) -> list:
 
     @function_tool(name_override="submit_review")
     def submit_review_tool(base: str, head: str,
-                           evals: list[str] | None = None) -> str:
+                           evals: list[str] | None = None,
+                           include_draft: str | None = None) -> str:
         """Escalate to a formal review: the deterministic pipeline runs the
         suite and issues the verdict. One per turn.
 
@@ -469,8 +509,10 @@ def make_tools(ctx: SessionContext) -> list:
             base: base ref/sha to compare from.
             head: head ref/sha to verify.
             evals: optional subset of declared eval names (default: full suite).
+            include_draft: a draft id from draft_eval to run with this review
+                as a scoped, PR-proposed eval.
         """
-        return submit_review(ctx, base, head, evals)
+        return submit_review(ctx, base, head, evals, include_draft)
 
     @function_tool(name_override="draft_eval", strict_mode=False)  # dict param
     def draft_eval_tool(origin: str, name: str, cmd: str,

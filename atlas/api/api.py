@@ -20,6 +20,8 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 
+from atlas.contracts.evalspec import (SCOPED_PER_RUN_MAX, validate_eval,
+                                      validate_scoped)
 from atlas.contracts.names import (APP_NAME, CONTROLLER_FUNCTION,
                                    DICT_APPROVALS, ENV_RUNS_ROOT, VOLUME_RUNS)
 from atlas.contracts.types import SCHEMA_VERSION
@@ -438,6 +440,27 @@ def create_run(body: dict):
         evals = [e for e in suite if e["name"] in set(picked)]
     else:  # all/auto ship the declared suite; auto is narrowed by the planner
         evals = list(suite)
+
+    # Agent-proposed scoped evals ride the run without joining the store:
+    # base schema + harness/ceiling constraints, marked so the planner keeps
+    # them. This is what makes a zero-eval repo still reviewable.
+    extras = body.get("extra_evals") or []
+    if len(extras) > SCOPED_PER_RUN_MAX:
+        raise HTTPException(422, f"at most {SCOPED_PER_RUN_MAX} extra_evals per run")
+    taken = {e["name"] for e in evals}
+    for raw in extras:
+        try:
+            entry = validate_eval(raw)
+            validate_scoped(entry, suite)
+        except ValueError as e:
+            raise HTTPException(422, f"extra_evals: {e}")
+        if entry["name"] in taken:
+            raise HTTPException(422, f"extra_evals: name {entry['name']!r} "
+                                     "collides with the selected suite")
+        entry["scoped"] = True
+        evals.append(entry)
+        taken.add(entry["name"])
+
     if not evals:
         raise HTTPException(422, "no evals defined for this repo — add them "
                                  "via the MCP server or the Evals page")

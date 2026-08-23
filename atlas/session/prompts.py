@@ -42,6 +42,32 @@ Discipline:
   every token (a host sync)".
 """
 
+WORKER_DIRECTIVE = """\
+Review this pull request end to end without waiting for a human. Work from
+the triage annotations already in your context.
+
+1. Coverage decision. From the triage annotations, list which declared evals
+   exercise the changed code, and whether any claim the PR makes (its title
+   and body) is left uncovered ("gap" annotations).
+2. If there is an uncovered claim, draft exactly ONE scoped eval with
+   draft_eval that would test it: parameterize the declared measurement
+   harness (the same command the suite's evals use, or python
+   /harness/bench.py with --src {src} --out {out}) with the scenario the
+   claim is about — tokens, batch, repeats, which metrics to bound. Pick the
+   smallest scenario that would show the effect. Stay inside the ceilings;
+   a rejected draft comes back with the reason — fix it and retry once.
+3. Submit the formal review with submit_review: base = the PR's base, head =
+   the PR's head, evals = the declared evals that cover the change (omit to
+   run the suite), include_draft = your draft's id if you made one. On a
+   repo with no declared evals, the scoped draft alone carries the review.
+4. Do not create a sandbox unless a one-minute check would change what you
+   submit; the review pipeline does the measuring.
+
+Your final message is the review kickoff summary the PR page shows: what
+the change claims, where the risk is, what is covered, what the scoped eval
+(if any) will test, and that the verdict follows from the pipeline.
+"""
+
 TRIAGE_PROMPT = """\
 You are the Inferval triage annotator. Read the attached change (PR meta +
 unified diff) and the repo's declared eval suite, and annotate the diff with

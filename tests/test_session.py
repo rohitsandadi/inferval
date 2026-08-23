@@ -338,21 +338,31 @@ def test_draft_eval_validation_and_event(ctx, runs_root):
     (d / "triage.json").write_text(json.dumps(
         [{"id": "a1", "path": "model.py", "start_line": 1, "end_line": 2,
           "risk": "perf", "note": "n", "coverage": "gap"}]))
+    good_cmd = ("python /harness/bench.py --src {src} --eval sample_step "
+                "--tokens 64 --repeats 3 --out {out}")
     assert "unknown origin" in stools.draft_eval(
-        ctx, "a9", "sample_step", "cmd", {}, 20)
+        ctx, "a9", "sample_step", good_cmd, {"latency_ms_p95": "+15%"}, 20)
     assert "already exists in the suite" in stools.draft_eval(
-        ctx, "a1", "generate_short", "cmd", {}, 20)
-    out = stools.draft_eval(ctx, "a1", "sample_step",
-                            "python bench.py --eval sample_step",
+        ctx, "a1", "generate_short", good_cmd, {"latency_ms_p95": "+15%"}, 20)
+    # the scoped contract rejects anything that is not the declared harness
+    assert "declared harness" in stools.draft_eval(
+        ctx, "a1", "sample_step", "python evil.py --out {out} --src {src}",
+        {"latency_ms_p95": "+15%"}, 20)
+    assert "outside 1..512" in stools.draft_eval(
+        ctx, "a1", "sample_step",
+        "python /harness/bench.py --src {src} --tokens 9000 --out {out}",
+        {"latency_ms_p95": "+15%"}, 20)
+    out = stools.draft_eval(ctx, "a1", "sample_step", good_cmd,
                             {"latency_ms_p95": "+15%"}, 20)
     assert "d1" in out
     drafts = json.loads((d / "drafts.json").read_text())
     assert drafts[0] == {"id": "d1", "origin": "a1", "name": "sample_step",
-                         "cmd": "python bench.py --eval sample_step",
+                         "cmd": good_cmd,
                          "checks": {"latency_ms_p95": "+15%"},
                          "est_gpu_seconds": 20, "status": "proposed"}
     assert "already exists" in stools.draft_eval(ctx, "a1", "sample_step",
-                                                 "cmd", {}, 20)
+                                                 good_cmd,
+                                                 {"latency_ms_p95": "+15%"}, 20)
     assert kinds(runs_root, ctx.chat_id)[-1] == "eval_draft"
 
 
@@ -405,6 +415,27 @@ def test_run_turn_triage_then_reply(client, monkeypatch, chat_id, runs_root):
     ev = read_events(runs_root, chat_id)
     assert ev[-2]["detail"]["text"] == "Looked at it."
     assert ev[-1]["detail"] == {"turn": 1, "ok": True}
+
+
+def test_run_turn_directive_mode(client, monkeypatch, chat_id, runs_root):
+    """Review-this-PR worker turn: review_requested instead of user_message,
+    and the task carries the worker directive."""
+    tasks = []
+
+    def fake(agent, task, max_turns):
+        tasks.append(task)
+        if agent.name == "atlas-triage":
+            return SimpleNamespace(final_output=TRIAGE_OUT)
+        return SimpleNamespace(final_output="Review kicked off.")
+    monkeypatch.setattr(sloop, "_run_agent", fake)
+    monkeypatch.setattr(sloop, "_model", lambda: None)
+    res = sloop.run_turn(chat_id, str(runs_root), "", directive=True)
+    assert res == {"chat": chat_id, "turn": 1, "ok": True}
+    ks = kinds(runs_root, chat_id)
+    assert ks == ["review_requested", "triage", "agent_message", "turn_done"]
+    ev = read_events(runs_root, chat_id)[0]
+    assert ev["detail"]["pr"] == 1 and ev["detail"]["trigger"] == "manual"
+    assert "Review this pull request" in tasks[-1]
 
 
 def test_run_turn_second_turn_skips_triage(client, monkeypatch, chat_id, runs_root):

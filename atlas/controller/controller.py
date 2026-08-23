@@ -173,7 +173,10 @@ def plan_evals(spec: dict, emit) -> list[dict]:
         from atlas.investigator.loop import plan
         p = plan(spec, spec.get("diff", ""))
         names = set(p.get("evals") or [])
-        chosen = [ev for ev in spec["evals"] if ev["name"] in names] or spec["evals"]
+        # scoped (PR-proposed) evals were requested explicitly; the planner
+        # may narrow the suite around them but never drop them
+        chosen = [ev for ev in spec["evals"]
+                  if ev["name"] in names or ev.get("scoped")] or spec["evals"]
         emit("agent", "plan", {"evals": [e["name"] for e in chosen],
                                "extra_metrics": p.get("extra_metrics", []),
                                "reasoning": p.get("reasoning", "")})

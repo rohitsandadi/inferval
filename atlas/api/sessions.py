@@ -25,9 +25,10 @@ router = APIRouter(prefix="/api")
 
 # --- hooks (monkeypatched in tests) -----------------------------------------
 
-def _default_spawn_turn(chat_id: str, text: str) -> None:
+def _default_spawn_turn(chat_id: str, text: str, directive: bool = False) -> None:
     import modal  # lazy: only reachable on Modal / with credentials
-    modal.Function.from_name(APP_NAME, CHAT_TURN_FUNCTION).spawn(chat_id, text)
+    modal.Function.from_name(APP_NAME, CHAT_TURN_FUNCTION).spawn(
+        chat_id, text, directive=directive)
 
 
 def _default_fetch_pr(repo_name: str, number: int, cache_dir: str) -> dict:
@@ -184,6 +185,37 @@ def create_session(name: str, body: dict):
     return {"session": chat_id}
 
 
+@router.post("/repos/{name:path}/prs/{number}/review")
+def review_pr(name: str, number: int):
+    """The "Review this PR" trigger: create a session attached to the PR and
+    spawn one background worker turn (no chat message). The worker triages,
+    decides coverage, may draft one constrained scoped eval, and submits the
+    formal review; its artifacts land in the session's event stream."""
+    created = create_session(name, {"pr": number})
+    chat_id = created["session"]
+    try:
+        spawn_turn(chat_id, "", directive=True)
+    except Exception as e:
+        raise HTTPException(502, f"worker spawn failed: {e}")
+    return {"session": chat_id}
+
+
+@router.post("/sessions/{chat_id}/review")
+def review_session(chat_id: str):
+    """Trigger the background review worker on an existing session (the PR
+    page's Review button; the /prs/{n}/review route is the create-and-run
+    variant for API/MCP callers)."""
+    d = _chat_dir(chat_id)
+    meta = _read_json(os.path.join(d, "meta.json")) or {}
+    if not (meta.get("pr") or meta.get("branch")):
+        raise HTTPException(422, "session has no change attached to review")
+    try:
+        spawn_turn(chat_id, "", directive=True)
+    except Exception as e:
+        raise HTTPException(502, f"worker spawn failed: {e}")
+    return {"session": chat_id}
+
+
 @router.get("/repos/{name:path}/sessions")
 def list_sessions(name: str):
     """Sessions for a repo, newest first: what the PR page opens or reuses."""
@@ -229,7 +261,8 @@ def post_message(chat_id: str, body: dict):
     turn = 1
     for line in _read_raw_lines(d):
         try:
-            if json.loads(line).get("kind") == "user_message":
+            if json.loads(line).get("kind") in ("user_message",
+                                                "review_requested"):
                 turn += 1
         except ValueError:
             continue

@@ -83,15 +83,35 @@ def _read_json(path: str):
         return None
 
 
-def _find_repo(repo_name: str) -> dict:
-    """The repos.json entry for this session's repo, or a minimal stand-in."""
+def _find_repo(repo_name: str, runs_root: str) -> dict:
+    """The repo entry this session works against: repos.json, else the
+    OAuth-connected repos.d/ entry, then the evals.d/ store overlaid by name
+    (store wins) — the same view the API serves, so triage coverage and
+    run_eval see agent-created evals."""
     path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
                         "api", "repos.json")
     data = _read_json(path) or {}
-    for r in data.get("repos", []):
-        if r.get("name") == repo_name:
-            return r
-    return {"name": repo_name, "evals": [], "overrides": []}
+    repo = next((r for r in data.get("repos", [])
+                 if r.get("name") == repo_name), None)
+    if repo is None:
+        d = os.path.join(runs_root, "repos.d")
+        if os.path.isdir(d):
+            for fn in sorted(os.listdir(d)):
+                entry = _read_json(os.path.join(d, fn))
+                if entry and entry.get("name") == repo_name:
+                    repo = entry
+                    break
+    if repo is None:
+        repo = {"name": repo_name, "evals": [], "overrides": []}
+    sd = os.path.join(runs_root, "evals.d", repo_name.replace("/", "__"))
+    if os.path.isdir(sd):
+        by_name = {e["name"]: e for e in repo.get("evals", [])}
+        for fn in sorted(os.listdir(sd)):
+            e = _read_json(os.path.join(sd, fn))
+            if e and e.get("name"):
+                by_name[e["name"]] = e
+        repo["evals"] = list(by_name.values())
+    return repo
 
 
 def validate_triage(out: TriageOut, suite_names: list[str]) -> list[dict]:
@@ -135,8 +155,12 @@ def run_turn(chat_id: str, runs_root: str, user_text: str, *,
              probe_callback=None, approvals: str = "auto", max_turns: int = 16,
              gpu_seconds_budget: float = 120.0, approval_lookup=None,
              sandbox_factory=None, sandbox_release=None, post_run=None,
-             volume=None) -> dict:
+             volume=None, directive: bool = False) -> dict:
     """One chat turn. Returns {"chat", "turn", "ok"}.
+
+    directive=True is the background-worker mode ("Review this PR"): no
+    human message — the turn opens with a review_requested event and the
+    agent works from the fixed WORKER_DIRECTIVE instead of user_text.
 
     probe_callback(ctx, eval_spec, overrides, out_subdir) -> list[BlockResult]
     backs run_eval (production: the paired runner via the default; tests: a
@@ -153,14 +177,15 @@ def run_turn(chat_id: str, runs_root: str, user_text: str, *,
         with open(events_path) as f:
             for line in f:
                 try:
-                    if json.loads(line).get("kind") == "user_message":
+                    if json.loads(line).get("kind") in ("user_message",
+                                                        "review_requested"):
                         turn += 1
                 except ValueError:
                     continue
     except FileNotFoundError:
         pass
 
-    repo = _find_repo(meta.get("repo", ""))
+    repo = _find_repo(meta.get("repo", ""), runs_root)
     ctx = SessionContext(chat_id=chat_id, runs_root=runs_root, repo=repo,
                          meta=meta, approvals=approvals,
                          approval_lookup=approval_lookup,
@@ -169,7 +194,12 @@ def run_turn(chat_id: str, runs_root: str, user_text: str, *,
                          sandbox_release=sandbox_release,
                          eval_runner=probe_callback, post_run=post_run,
                          volume=volume)
-    emit(ctx, "human", "user_message", {"text": user_text, "turn": turn})
+    if directive:
+        pr = (meta.get("pr") or {})
+        emit(ctx, "human", "review_requested",
+             {"trigger": "manual", "pr": pr.get("number"), "turn": turn})
+    else:
+        emit(ctx, "human", "user_message", {"text": user_text, "turn": turn})
 
     ok = True
     try:
@@ -187,10 +217,15 @@ def run_turn(chat_id: str, runs_root: str, user_text: str, *,
                       model=_model(),
                       model_settings=ModelSettings(max_tokens=MAX_TOKENS),
                       tools=make_tools(ctx))
-        task = build_context(runs_root, chat_id, repo,
-                             sandbox_line=ctx.sandbox_line()) + \
-            f"\n\n## User message\n{user_text}\n\nAct on this message with " \
-            "your tools, then reply."
+        if directive:
+            task = build_context(runs_root, chat_id, repo,
+                                 sandbox_line=ctx.sandbox_line()) + \
+                "\n\n## Directive\n" + prompts.WORKER_DIRECTIVE
+        else:
+            task = build_context(runs_root, chat_id, repo,
+                                 sandbox_line=ctx.sandbox_line()) + \
+                f"\n\n## User message\n{user_text}\n\nAct on this message " \
+                "with your tools, then reply."
         # max_turns counts ACTIONS; the set_status-before-every-call pattern
         # spends one extra model invocation per action, hence * 2.
         result = _run_agent(agent, task, max_turns * 2)
