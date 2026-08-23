@@ -37,6 +37,12 @@ For a pull request, review_pr does the whole arc in one call: a background
 worker triages the diff, checks which stored evals cover it, may propose one
 tightly constrained scoped eval for an uncovered claim, and submits the
 review. It works even when the repo has no evals defined yet.
+
+A repo's suite merges two sources, and list_evals shows both: "seed" evals
+ship with the repo's own config (read-only here), "store" evals were created
+via create_eval and can be replaced or deleted. A store eval with a seed
+eval's name overrides it — create_eval requires replace: true for that.
+review_pr and submit_review start paid GPU runs; everything else is free.
 `;
 
 async function apiDelete(path: string) {
@@ -115,10 +121,27 @@ const handler = createMcpHandler(
       "list_evals",
       {
         description:
-          "Full eval definitions stored for a repo (created via create_eval).",
+          "The repo's full effective eval suite. source \"seed\" entries come " +
+          "from the repo's own config (read-only here; a create_eval with the " +
+          "same name and replace: true overrides one); source \"store\" " +
+          "entries were created via create_eval and can be replaced or deleted.",
         inputSchema: z.object({ repo: z.string() }),
       },
-      async ({ repo }) => dump(await apiGet(`/api/repos/${repo}/evals`)),
+      async ({ repo }) => {
+        const stored: Array<Record<string, unknown>> = await apiGet(
+          `/api/repos/${repo}/evals`,
+        );
+        const repos: Array<Record<string, unknown>> = await apiGet("/api/repos");
+        const entry = repos.find((r) => r.name === repo);
+        const storeNames = new Set(stored.map((e) => e.name));
+        const seeded = ((entry?.evals as string[]) ?? [])
+          .filter((name) => !storeNames.has(name))
+          .map((name) => ({ name, source: "seed", read_only: true }));
+        return dump([
+          ...seeded,
+          ...stored.map((e) => ({ ...e, source: "store" })),
+        ]);
+      },
     );
 
     server.registerTool(
@@ -134,9 +157,30 @@ const handler = createMcpHandler(
           cmd: z.string(),
           checks: z.record(z.string(), z.string()),
           absolute: z.record(z.string(), z.string()).optional(),
+          replace: z.boolean().optional(),
         }),
       },
-      async ({ repo, name, cmd, checks, absolute }) => {
+      async ({ repo, name, cmd, checks, absolute, replace }) => {
+        if (!replace) {
+          // collision guard: overriding an existing eval (stored or seeded)
+          // must be explicit — pass replace: true to mean it
+          const stored: Array<Record<string, unknown>> = await apiGet(
+            `/api/repos/${repo}/evals`,
+          );
+          const repos: Array<Record<string, unknown>> = await apiGet(
+            "/api/repos",
+          );
+          const entry = repos.find((r) => r.name === repo);
+          const taken =
+            stored.some((e) => e.name === name) ||
+            ((entry?.evals as string[]) ?? []).includes(name);
+          if (taken) {
+            throw new Error(
+              `an eval named "${name}" already exists for ${repo}; ` +
+                "pass replace: true to override it",
+            );
+          }
+        }
         const body: Record<string, unknown> = { name, cmd, checks };
         if (absolute) body.absolute = absolute;
         return dump(await apiPost(`/api/repos/${repo}/evals`, body));
@@ -159,11 +203,12 @@ const handler = createMcpHandler(
       "review_pr",
       {
         description:
-          "Review a pull request end to end: a background worker triages the " +
-          "diff, checks eval coverage, may propose one constrained scoped " +
-          "eval for an uncovered claim, and submits the formal review. Works " +
-          "on repos with no evals defined. Returns the session id; the run " +
-          "appears in list-of-runs a few minutes later.",
+          "STARTS A PAID GPU REVIEW RUN — confirm with your user before " +
+          "calling. Reviews a pull request end to end: a background worker " +
+          "triages the diff, checks eval coverage, may propose one " +
+          "constrained scoped eval for an uncovered claim, and submits the " +
+          "formal review. Works on repos with no evals defined. Returns the " +
+          "session id; the run appears a few minutes later.",
         inputSchema: z.object({ repo: z.string(), pr: z.number().int() }),
       },
       async ({ repo, pr }) =>
@@ -174,8 +219,9 @@ const handler = createMcpHandler(
       "submit_review",
       {
         description:
-          "Start a review. compare mode needs base and head (branch or SHA); " +
-          "check mode measures base alone against absolute limits. evals: names to " +
+          "STARTS A PAID GPU REVIEW RUN — confirm with your user before " +
+          "calling. compare mode needs base and head (branch or SHA); check " +
+          "mode measures base alone against absolute limits. evals: names to " +
           "run (omit = the agent-planned selection). claim: what the change says " +
           "it does — the verdict checks it. Returns the run id.",
         inputSchema: z.object({
