@@ -15,11 +15,28 @@ def gh(tmp_path, monkeypatch):
     monkeypatch.setenv("GITHUB_CLIENT_SECRET", "sec456")
     monkeypatch.setattr(github_auth, "store", {})
     monkeypatch.setattr(github_auth, "exchange_code", lambda code: "tok_" + code)
-    monkeypatch.setattr(github_auth, "gh_get", lambda path, tok: (
-        {"login": "rohitsandadi"} if path == "/user"
-        else {"default_branch": "master"} if path.startswith("/repos/")
-        else [{"full_name": "rohitsandadi/nanoGPT", "private": False,
-               "default_branch": "master", "pushed_at": "2026-08-23T00:00:00Z"}]))
+    def fake_gh_get(path, tok):
+        if path == "/user":
+            return {"login": "rohitsandadi"}
+        if path.endswith("/branches?per_page=100"):
+            return [
+                {"name": "master", "commit": {"sha": "base-sha"}},
+                {"name": "feature/live", "commit": {"sha": "head-sha"}},
+                {"name": "experiment", "commit": {"sha": "exp-sha"}},
+            ]
+        if path.endswith("/pulls?state=open&per_page=100"):
+            return [{"number": 42, "title": "Make it faster",
+                     "html_url": "https://github.com/acme/new-model/pull/42",
+                     "body": "Cuts inference latency in half.",
+                     "head": {"ref": "feature/live"},
+                     "base": {"ref": "master"}}]
+        if path.startswith("/repos/"):
+            return {"default_branch": "master"}
+        return [{"full_name": "rohitsandadi/nanoGPT", "private": False,
+                 "default_branch": "master",
+                 "pushed_at": "2026-08-23T00:00:00Z"}]
+
+    monkeypatch.setattr(github_auth, "gh_get", fake_gh_get)
     return TestClient(api.web_app, follow_redirects=False)
 
 
@@ -74,6 +91,20 @@ def test_connect_repo_writes_and_merges(gh, tmp_path):
     names = [x["name"] for x in gh.get("/api/repos").json()]
     assert "acme/new-model" in names
     assert gh.post("/api/repos", json={"name": "not-a-repo"}).status_code == 422
+
+
+def test_oauth_branches_and_prs_feed_review_picker(gh):
+    github_auth.store["token"] = "t"
+    assert gh.post("/api/repos", json={"name": "acme/new-model"}).status_code == 200
+    rows = gh.get("/api/repos/acme/new-model/branches").json()
+    by_name = {row["name"]: row for row in rows}
+    assert set(by_name) == {"feature/live", "experiment"}
+    assert by_name["feature/live"]["source"] == "github"
+    assert by_name["feature/live"]["sha"] == "head-sha"
+    assert by_name["feature/live"]["pr"]["number"] == 42
+    assert by_name["feature/live"]["pr"]["claim"] == \
+        "Cuts inference latency in half."
+    assert by_name["experiment"]["pr"] is None
 
 
 def test_remove_repo_persists_and_reconnect_restores(gh, tmp_path):

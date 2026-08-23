@@ -237,6 +237,7 @@ export interface BranchInfo {
   name: string;
   sha: string;
   pr: BranchPR | null;
+  source?: "github" | "stored";
   state: "verified" | "regression" | "running" | "unverified";
   last_review: {
     run: string;

@@ -77,6 +77,42 @@ def current_token():
         return None
 
 
+def github_branch_facts(name: str) -> list[dict] | None:
+    """Live branches enriched with open PR metadata when OAuth is connected.
+
+    None means no usable OAuth connection, allowing callers to retain their
+    stored branch fallback. An empty list is a valid live GitHub response.
+    """
+    token = current_token()
+    if not token:
+        return None
+    try:
+        branches = gh_get(f"/repos/{name}/branches?per_page=100", token)
+        pulls = gh_get(f"/repos/{name}/pulls?state=open&per_page=100", token)
+    except Exception:
+        return None
+    pull_by_head = {}
+    for pull in pulls or []:
+        head = (pull.get("head") or {}).get("ref")
+        if not head or head in pull_by_head:
+            continue
+        pull_by_head[head] = {
+            "number": pull.get("number"),
+            "title": pull.get("title") or "",
+            "url": pull.get("html_url") or "",
+            "claim": (pull.get("body") or pull.get("title") or "")[:4000],
+        }
+    out = []
+    for branch in branches or []:
+        branch_name = branch.get("name")
+        sha = (branch.get("commit") or {}).get("sha")
+        if branch_name and sha:
+            out.append({"name": branch_name, "sha": sha,
+                        "pr": pull_by_head.get(branch_name),
+                        "source": "github"})
+    return out
+
+
 # --- auth routes ------------------------------------------------------------
 
 def _frontend() -> str:

@@ -309,9 +309,18 @@ def repo_branches(name: str, base: str = None):
     if repo is None:
         raise HTTPException(404, f"unknown repo: {name}")
     base_ref = base or repo.get("default_branch")
+    branch_facts = repo.get("branches", [])
+    try:
+        from atlas.api.github_auth import github_branch_facts
+        live_facts = github_branch_facts(name)
+        if live_facts is not None:
+            branch_facts = [branch for branch in live_facts
+                            if branch["name"] != base_ref]
+    except Exception:
+        pass
     runs = _scan_runs()  # oldest first; the last hit is the newest review
     out = []
-    for b in repo.get("branches", []):
+    for b in branch_facts:
         hits = [r for r in runs
                 if _repo_matches(r["spec"].get("repo", ""), name)
                 and b["name"] in (r["spec"].get("branch"),
@@ -333,6 +342,7 @@ def repo_branches(name: str, base: str = None):
                     "tokens_per_s_delta_pct": row["tokens_per_s_delta_pct"],
                     "status": row["status"], "t": row["created_at"]}
         out.append({"name": b["name"], "sha": b["sha"], "pr": b.get("pr"),
+                    "source": b.get("source", "stored"),
                     "state": state, "last_review": last,
                     "reviews_count": len(hits)})
     return out

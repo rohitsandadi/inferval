@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { GitHubMark } from "@/components/github-mark";
 import {
   Dialog,
   DialogContent,
@@ -41,6 +42,7 @@ function RefField({
   custom,
   onValue,
   onCustom,
+  details,
 }: {
   id: string;
   options: string[];
@@ -48,6 +50,7 @@ function RefField({
   custom: boolean;
   onValue: (v: string) => void;
   onCustom: (on: boolean) => void;
+  details?: Record<string, string>;
 }) {
   if (custom) {
     return (
@@ -92,7 +95,14 @@ function RefField({
       <SelectContent>
         {options.map((o) => (
           <SelectItem key={o} value={o} className="font-mono text-xs">
-            {o}
+            <span className="flex w-full min-w-0 items-center gap-2">
+              <span className="truncate">{o}</span>
+              {details?.[o] && (
+                <span className="ml-auto shrink-0 font-sans text-[12px] text-faint">
+                  {details[o]}
+                </span>
+              )}
+            </span>
           </SelectItem>
         ))}
         <SelectItem value={CUSTOM} className="text-xs text-muted-foreground">
@@ -125,6 +135,16 @@ export function NewReviewDialog({
     return [...set];
   }, [repo.default_branch, branchNames]);
   const headOptions = branchNames.length > 0 ? branchNames : [];
+  const headDetails = useMemo(
+    () =>
+      Object.fromEntries(
+        branches
+          .filter((branch) => branch.pr)
+          .map((branch) => [branch.name, `PR #${branch.pr!.number}`]),
+      ),
+    [branches],
+  );
+  const githubBranches = branches.some((branch) => branch.source === "github");
 
   const [mode, setMode] = useState<Mode>("compare");
   const [selection, setSelection] = useState<"auto" | "all" | "pick">("auto");
@@ -304,9 +324,17 @@ export function NewReviewDialog({
                 custom={headCustom}
                 onValue={onHeadChange}
                 onCustom={setHeadCustom}
+                details={headDetails}
               />
             </div>
           )}
+
+          <p className="col-span-2 flex items-center gap-1.5 text-[12px] text-faint">
+            {githubBranches && <GitHubMark className="size-3.5" />}
+            {githubBranches
+              ? "Branches and open pull requests synced from GitHub"
+              : "Using stored branches; connect GitHub on the repositories page for live choices"}
+          </p>
 
           <div className="col-span-2 space-y-1.5">
             <Label htmlFor="nr-claim" className="text-[13px] text-muted-foreground">
