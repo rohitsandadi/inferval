@@ -16,7 +16,7 @@ from this machine):
           script created is terminated at exit (the product leaves cooldown
           reaping to the registry; the smoke pays for nothing idle).
 
-The OpenRouter key is loaded from atlas_v1/openrouter.env into the process
+The OpenRouter key is loaded from openrouter.env into the process
 env only; it is never printed or written anywhere.
 
 Usage: .venv/bin/python scripts/session_smoke.py [--turn1-only]

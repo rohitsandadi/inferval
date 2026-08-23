@@ -1,6 +1,6 @@
 """Submit the demo regression run through the deployed controller.
 
-Usage (from atlas_v1/, after `modal deploy atlas/controller/app.py`):
+Usage (from the repo root, after `modal deploy atlas/controller/app.py`):
   .venv/bin/python scripts/submit_demo_run.py           # spawn, print ids
   .venv/bin/python scripts/submit_demo_run.py --wait    # block, print report
 """

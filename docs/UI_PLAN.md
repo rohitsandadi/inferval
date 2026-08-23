@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Rebuild `atlas_v1/web/` to the approved rev-5 wireframes: a Vercel/shadcn
+**Goal:** Rebuild `web/` to the approved rev-5 wireframes: a Vercel/shadcn
 dashboard where a branch/PR is the unit of verification.
 
 **Architecture:** Next.js App Router with a persistent repo-level sidebar layout;
@@ -16,7 +16,7 @@ Geist Mono, TypeScript. Backend: existing FastAPI in `atlas/api/api.py`.
 
 **Spec:** `v2/wireframes-rev5.html` (open it in a browser — it IS the design,
 screen numbers below refer to it). Supporting docs: `v2/ARCHITECTURE.md` §6,
-existing code in `atlas_v1/web/`.
+existing code in `web/`.
 
 ## Global Constraints
 
@@ -119,7 +119,7 @@ export interface BranchInfo {
 
 **Files:**
 - Modify: `web/lib/api.ts`
-- Create: `web/mocks/branches_nanogpt.json` (4 branches per wireframe screen 3, real claims from `atlas_v1/demo/PIN.md`)
+- Create: `web/mocks/branches_nanogpt.json` (4 branches per wireframe screen 3, real claims from `demo/PIN.md`)
 
 **Interfaces (Produces):**
 

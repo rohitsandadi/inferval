@@ -4,7 +4,7 @@ M1's paired_runner productizes exactly this known-good invocation.
 Runs base and head sequentially in ONE GPU sandbox, interleaved b-h-h-b,
 fresh process per block, and prints noise/delta analysis.
 
-Usage (from atlas_v1/):
+Usage (from the repo root):
   # noise floor (same code both sides):
   .venv/bin/python scripts/manual_paired_run.py --mode noise
 

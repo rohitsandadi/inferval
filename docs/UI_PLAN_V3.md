@@ -6,7 +6,7 @@
 > (palette, dots, mono discipline, one primary per page, "Reviews" wording,
 > no filler text, build+browser gate per task).
 
-**Goal:** Implement the 11 approved wireframe-v3 screens in `atlas_v1/web/`:
+**Goal:** Implement the 11 approved wireframe-v3 screens in `web/`:
 the PR/session page, Sandboxes page, telemetry in the trace, the evolved
 Evals page, and the density redraw of every existing screen — connected to
 the live deployed backend.
@@ -57,7 +57,7 @@ createSession) and redirects to it. Sandboxes at `/repo/[o]/[n]/sandboxes`
 Types + api.ts above. Mocks: a session mirroring the real smoke (triage with
 a1/a2/a3 incl. the `coverage: "gap"` one, drafts, an events feed with every
 kind), `sandboxes_nanogpt.json`, telemetry arrays (idle→95% ramp), and the
-real `atlas_v1/demo/patches/regression.patch` text as the mock diff. Build
+real `demo/patches/regression.patch` text as the mock diff. Build
 green.
 
 ### Task 2 — Sandboxes page (wireframe screen 4)

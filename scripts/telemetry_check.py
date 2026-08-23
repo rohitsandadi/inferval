@@ -14,7 +14,7 @@ Same manual-sandbox pattern as scripts/manual_paired_run.py (app
 
 Total GPU time well under 5 minutes.
 
-Usage (from atlas_v1/): .venv/bin/python scripts/telemetry_check.py
+Usage (from the repo root): .venv/bin/python scripts/telemetry_check.py
 """
 import datetime
 import json

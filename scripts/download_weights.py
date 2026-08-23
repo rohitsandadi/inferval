@@ -1,6 +1,6 @@
 """One-time: cache GPT-2 124M weights (nanoGPT state_dict) into atlas-cache.
 
-Run from atlas_v1/:  .venv/bin/modal run scripts/download_weights.py
+Run from the repo root:  .venv/bin/modal run scripts/download_weights.py
 CPU only; downloads from HF inside Modal, saves ~0.5GB to the Volume.
 """
 import os

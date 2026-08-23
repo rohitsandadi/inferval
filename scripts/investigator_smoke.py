@@ -10,7 +10,7 @@ Scenarios:
   budget — max_experiments=0; PASS = agent still concludes, zero probes run.
   bogus  — nonexistent model id; PASS = InvestigatorFailed raised.
 
-The OpenRouter key is loaded from atlas_v1/openrouter.env into the process
+The OpenRouter key is loaded from openrouter.env into the process
 env only; it is never printed or written anywhere.
 """
 import json

@@ -30,9 +30,9 @@ Agents cannot scaffold knowledge about real infrastructure. Buy it tonight:
       model ID on openrouter.ai. Keep a paid OpenAI-compatible fallback in
       reserve — ox-alpha has no SLA.
 - [x] UI pages sketched — superseded: packet D fully built pre-event
-      (`atlas_v1/web/`, respan-style theme, all three routes).
+      (`web/`, respan-style theme, all three routes).
 - [x] Investigator system prompt drafted — superseded: packet C fully built
-      (`atlas_v1/atlas/investigator/prompts.py`), live-proven on ox-alpha.
+      (`atlas/investigator/prompts.py`), live-proven on ox-alpha.
 - [x] Work packets pasted — executed pre-event by four parallel agents; all
       four packets complete, integrated, and live-proven end to end.
 - [ ] Event rules checked: confirm what prep is allowed. If prewriting code is
