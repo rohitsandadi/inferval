@@ -7,6 +7,7 @@
 import { use, useEffect, useMemo, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Collapsible,
   CollapsibleContent,
@@ -183,7 +184,48 @@ export default function ReviewPage({
   }, [setTopbarRight, done, cost, status]);
 
   if (detail === null) {
-    return <p className="text-xs text-faint">loading…</p>;
+    return (
+      <div className="space-y-5" aria-label="Loading review">
+        <div className="flex items-center gap-3">
+          <Skeleton className="h-5 w-24" />
+          <Skeleton className="h-5 w-44" />
+          <Skeleton className="h-6 w-20 rounded-full" />
+          <Skeleton className="ml-auto h-4 w-48" />
+        </div>
+
+        <div className="rounded-xl border border-border-soft bg-card px-5 py-4">
+          <div className="mb-5 flex items-center justify-between gap-4">
+            <div className="space-y-2">
+              <Skeleton className="h-5 w-32" />
+              <Skeleton className="h-4 w-44" />
+            </div>
+            <Skeleton className="h-7 w-24 rounded-full" />
+          </div>
+          <div className="relative grid grid-cols-7 px-2 pt-1">
+            <div className="absolute top-5 right-[7.15%] left-[7.15%] h-px bg-border-soft" />
+            {[0, 1, 2, 3, 4, 5, 6].map((stage) => (
+              <div key={stage} className="relative flex flex-col items-center gap-2">
+                <Skeleton className="size-9 rounded-full" />
+                <Skeleton className="h-3 w-16" />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="flex gap-2">
+          {[0, 1, 2, 3].map((tab) => (
+            <Skeleton key={tab} className="h-10 w-24" />
+          ))}
+        </div>
+        <div className="grid grid-cols-[minmax(0,1fr)_320px] gap-5 max-md:grid-cols-1">
+          <Skeleton className="h-72 w-full rounded-xl" />
+          <div className="space-y-3">
+            <Skeleton className="h-28 w-full rounded-xl" />
+            <Skeleton className="h-36 w-full rounded-xl" />
+          </div>
+        </div>
+      </div>
+    );
   }
 
   const verdict = detail.verdict;
