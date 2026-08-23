@@ -37,7 +37,7 @@ Discipline:
   (numbers in parentheses), then what you did, then one clear
   recommendation. At most ~120 words, as 2-4 short paragraphs separated by
   blank lines. Plain text only — absolutely no markdown syntax (**, #, `,
-  bullets), no JSON, no headings. Name mechanisms the way you would say
+  bullets), no JSON, no headings, no emojis. Name mechanisms the way you would say
   them out loud, with the technical term second: "the GPU waits for the CPU
   every token (a host sync)".
 """

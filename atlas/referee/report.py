@@ -4,7 +4,7 @@ from typing import Any
 
 def _fmt_check(c: dict) -> str:
     flag = "  《near noise band — flagged》" if c.get("flagged") else ""
-    mark = "❌" if c["violated"] else "✅"
+    mark = "FAIL" if c["violated"] else "OK"
     if "delta_pct" in c:
         return (f"{mark} `{c['eval']}` {c['metric']}: {c.get('base', '?')} → "
                 f"{c['cand']}  (**{c['delta_pct']:+.1f}%**, limit {c['threshold']}){flag}")
@@ -48,8 +48,7 @@ def build_report(verdict: dict, investigation: dict | None = None,
                 flagged.append(f"Proposed but not run: {p['kind']} — {p['reason']}")
 
     # PR comment
-    icon = {"pass": "✅", "regression": "🔴", "invalid": "⚠️"}[v]
-    lines = [f"## Atlas: {icon} {v.upper()}", ""]
+    lines = [f"## Atlas: {v.upper()}", ""]
     lines += [f"- {s}" for s in summary]
     if checks:
         lines += ["", "**Measured (policy decision, not a model output):**", ""]
@@ -63,7 +62,7 @@ def build_report(verdict: dict, investigation: dict | None = None,
             lines += [f"- {o['text']} ({', '.join(o['refs'])})" for o in obs]
             lines += ["", "</details>"]
     if flagged:
-        lines += ["", "**Flagged:**"] + [f"- ⚑ {f}" for f in flagged]
+        lines += ["", "**Flagged:**"] + [f"- {f}" for f in flagged]
     if greptile_ping and v == "regression":
         lines += ["", "@greptileai correlate the measured runtime evidence above "
                       "with the changed code paths in this PR."]

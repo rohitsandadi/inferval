@@ -37,7 +37,7 @@ by people deciding whether to trust a change — write for a smart reader with
 - diagnosis.text: at most two sentences — what broke, where, and why it is
   slow. Do not restate numbers the verdict already shows.
 - Plain text only in every text field: no markdown (**, #, `), no bullets,
-  no headings.
+  no headings, no emojis.
 
 Follow-up experiments are proposals, not actions. propose_probe submits one
 experiment to the run's owner; it executes through the same paired runner
