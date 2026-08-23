@@ -35,7 +35,8 @@ CONTROLLER_IMAGE = (
     modal.Image.debian_slim(python_version="3.12")
     .pip_install("fastapi==0.141.1", "pyyaml==6.0.3", "openai==3.3.1",
                  "openai-agents==0.22.0")
-    .env({"ATLAS_ON_MODAL": "1"})  # api.py: reload the runs Volume on reads
+    .env({"ATLAS_ON_MODAL": "1",  # api.py: reload the runs Volume on reads
+          "ATLAS_FRONTEND_URL": "https://inferval.vercel.app"})
     .add_local_python_source("atlas")  # .py files only —
     .add_local_file(f"{ROOT}/atlas/api/repos.json",  # data rides separately
                     "/root/atlas/api/repos.json")
