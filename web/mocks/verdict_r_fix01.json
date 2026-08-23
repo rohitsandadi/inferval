@@ -1,0 +1,50 @@
+{
+ "schema": "1",
+ "run": "r_fix01",
+ "verdict": "regression",
+ "checks": [
+  {
+   "metric": "tokens_per_s",
+   "eval": "generate_short",
+   "base": 412.3,
+   "cand": 276.2,
+   "delta_pct": -33.01,
+   "threshold": "-10%",
+   "violated": true
+  },
+  {
+   "metric": "tokens_per_s",
+   "eval": "generate_long",
+   "base": 389.5,
+   "cand": 328.7,
+   "delta_pct": -15.61,
+   "threshold": "-10%",
+   "violated": true
+  },
+  {
+   "metric": "latency_ms_p95",
+   "eval": "generate_long",
+   "base": 2661.0,
+   "cand": 3153.0,
+   "delta_pct": 18.49,
+   "threshold": "+15%",
+   "violated": true
+  },
+  {
+   "metric": "peak_vram_mb",
+   "eval": "generate_long",
+   "base": 1912.0,
+   "cand": 1919.0,
+   "delta_pct": 0.37,
+   "threshold": "+8%",
+   "violated": false
+  }
+ ],
+ "correctness": {
+  "result": "match"
+ },
+ "claim": {
+  "text": "~2x faster generation via optimized host-side sampling",
+  "verified": false
+ }
+}

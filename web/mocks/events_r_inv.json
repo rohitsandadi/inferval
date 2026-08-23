@@ -1,0 +1,91 @@
+[
+ {
+  "t": "2026-08-22T16:40:00Z",
+  "run": "r_inv",
+  "tier": "system",
+  "kind": "run_created",
+  "detail": {
+   "mode": "compare",
+   "repo": "rohitsandadi/nanoGPT",
+   "base": "3adf61e1",
+   "head": "deadbee1",
+   "selection": "all"
+  }
+ },
+ {
+  "t": "2026-08-22T16:40:03Z",
+  "run": "r_inv",
+  "tier": "system",
+  "kind": "status",
+  "detail": {
+   "status": "provisioning",
+   "gpu": "A10G"
+  }
+ },
+ {
+  "t": "2026-08-22T16:40:27Z",
+  "run": "r_inv",
+  "tier": "system",
+  "kind": "status",
+  "detail": {
+   "status": "ready",
+   "gpu_name": "NVIDIA A10G"
+  }
+ },
+ {
+  "t": "2026-08-22T16:40:35Z",
+  "run": "r_inv",
+  "tier": "system",
+  "kind": "preflight_failed",
+  "detail": {
+   "revision": "head",
+   "attempt": 1,
+   "error": "ImportError in model.py"
+  },
+  "refs": [
+   "preflight/head_attempt1.log"
+  ]
+ },
+ {
+  "t": "2026-08-22T16:40:41Z",
+  "run": "r_inv",
+  "tier": "system",
+  "kind": "preflight_failed",
+  "detail": {
+   "revision": "head",
+   "attempt": 2,
+   "error": "ImportError in model.py"
+  },
+  "refs": [
+   "preflight/head_attempt2.log"
+  ]
+ },
+ {
+  "t": "2026-08-22T16:40:43Z",
+  "run": "r_inv",
+  "tier": "policy",
+  "kind": "verdict",
+  "detail": {
+   "verdict": "invalid",
+   "reason": "candidate preflight failed on both attempts: ImportError in model.py"
+  }
+ },
+ {
+  "t": "2026-08-22T16:40:44Z",
+  "run": "r_inv",
+  "tier": "system",
+  "kind": "report_ready",
+  "detail": {
+   "path": "report.json"
+  }
+ },
+ {
+  "t": "2026-08-22T16:40:45Z",
+  "run": "r_inv",
+  "tier": "system",
+  "kind": "status",
+  "detail": {
+   "status": "done"
+  }
+ }
+]

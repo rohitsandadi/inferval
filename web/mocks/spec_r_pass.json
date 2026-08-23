@@ -1,0 +1,28 @@
+{
+ "schema": "1",
+ "run": "r_pass",
+ "mode": "compare",
+ "repo": "https://github.com/rohitsandadi/nanoGPT",
+ "base_sha": "3adf61e1",
+ "head_sha": "5e7d20aa",
+ "gpu": "A10G",
+ "image": "atlas-torch-2.8.0",
+ "evals": [
+  {
+   "name": "generate_short",
+   "cmd": "python /harness/bench.py --src {src} --eval generate_short --tokens 128 --batch 2 --repeats 5 --out {out}",
+   "checks": {
+    "tokens_per_s": "-10%",
+    "latency_ms_p95": "+15%",
+    "peak_vram_mb": "+8%"
+   },
+   "absolute": {
+    "latency_ms_p95": "<3000"
+   }
+  }
+ ],
+ "selection": "auto",
+ "claim": "moves constant allocation out of the loop",
+ "approvals": "manual",
+ "branch": "opt-allocation"
+}

@@ -1,0 +1,32 @@
+{
+ "schema": "1",
+ "run": "r_pass",
+ "verdict": "pass",
+ "checks": [
+  {
+   "metric": "tokens_per_s",
+   "eval": "generate_short",
+   "base": 412.3,
+   "cand": 405.1,
+   "delta_pct": -1.75,
+   "threshold": "-10%",
+   "violated": false
+  },
+  {
+   "metric": "latency_ms_p95",
+   "eval": "generate_short",
+   "base": 311.0,
+   "cand": 318.2,
+   "delta_pct": 2.32,
+   "threshold": "+15%",
+   "violated": false
+  }
+ ],
+ "correctness": {
+  "result": "match"
+ },
+ "claim": {
+  "text": "moves constant allocation out of the loop",
+  "verified": true
+ }
+}
