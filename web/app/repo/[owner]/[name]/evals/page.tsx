@@ -52,6 +52,20 @@ function absoluteBadge(metric: string, limit: string): string {
   return `${short} ${m[1]} ${m[2]}${unit}`;
 }
 
+// The harness command is plumbing; the table shows the scenario knobs it
+// encodes. Commands that don't match the harness shape (a repo's own bench)
+// fall back to the raw command.
+function scenarioLabel(cmd: string): string | null {
+  const pick = (flag: string) =>
+    cmd.match(new RegExp(`--${flag}[ =](\\d+)`))?.[1];
+  const parts = [
+    pick("tokens") && `tokens ${pick("tokens")}`,
+    pick("batch") && `batch ${pick("batch")}`,
+    pick("repeats") && `repeats ${pick("repeats")}`,
+  ].filter(Boolean);
+  return parts.length > 0 ? parts.join(" · ") : null;
+}
+
 // Coloring past the 3% noise margin; the metric's bad direction depends on
 // whether bigger is better (tokens/s) or worse (latency, VRAM).
 function deltaTone(
@@ -180,7 +194,7 @@ export default function EvalsPage({
             <TableRow className="border-border-soft hover:bg-transparent">
               <TableHead className="text-[13px] font-normal text-faint">Eval</TableHead>
               <TableHead className="text-[13px] font-normal text-faint">Origin</TableHead>
-              <TableHead className="text-[13px] font-normal text-faint">Command</TableHead>
+              <TableHead className="text-[13px] font-normal text-faint">Scenario</TableHead>
               <TableHead className="text-[13px] font-normal text-faint">Checks</TableHead>
               <TableHead className="text-[13px] font-normal text-faint">
                 Last {HISTORY_N} reviews (Δ)
@@ -214,7 +228,7 @@ export default function EvalsPage({
                   </TableCell>
                   <TableCell className="max-w-56">
                     <span className="block truncate font-mono text-[12px] text-faint">
-                      {e.cmd || "—"}
+                      {e.cmd ? (scenarioLabel(e.cmd) ?? e.cmd) : "—"}
                     </span>
                   </TableCell>
                   <TableCell>
