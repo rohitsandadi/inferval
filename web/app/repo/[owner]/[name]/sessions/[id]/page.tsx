@@ -13,6 +13,8 @@ import {
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
+import Link from "next/link";
+import { ListChecks } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -402,6 +404,56 @@ export default function SessionPage({
             <span className="max-w-[46ch] truncate pl-2 text-[13px] italic text-muted-foreground">
               “{pr.body}”
             </span>
+          )}
+        </div>
+        <div className="mt-2 flex flex-wrap items-center gap-3 border-t border-border-soft pt-3">
+          <div className="mr-auto flex min-w-0 items-center gap-2.5">
+            <ListChecks className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+            <div className="min-w-0">
+              <p className="text-xs font-semibold">
+                Reviews for {pr ? `PR #${pr.number}` : "this branch"}
+              </p>
+              <p className="text-[11px] text-faint">
+                Review runs submitted from this attached session
+              </p>
+            </div>
+          </div>
+          {reviewRunIds.length === 0 ? (
+            <span className="rounded-lg border border-dashed border-border px-3 py-1.5 text-xs text-muted-foreground">
+              No affiliated reviews yet
+            </span>
+          ) : (
+            reviewRunIds.map((run) => {
+              const linked = linkedRuns[run];
+              const reviewState =
+                linked?.status !== "done"
+                  ? "busy"
+                  : linked.verdict === "pass"
+                    ? "ok"
+                    : linked?.verdict
+                      ? "bad"
+                      : "idle";
+              const reviewLabel =
+                linked?.status !== "done"
+                  ? (linked?.status ?? "Loading")
+                  : linked.verdict === "pass"
+                    ? "Pass"
+                    : linked?.verdict === "regression"
+                      ? "Regression"
+                      : linked?.verdict === "invalid"
+                        ? "Invalid"
+                        : "Unverified";
+              return (
+                <Link
+                  key={run}
+                  href={`/repo/${owner}/${name}/reviews/${run}`}
+                  className="inline-flex items-center gap-2.5 rounded-lg border border-border bg-card px-3 py-1.5 transition-colors hover:bg-muted"
+                >
+                  <span className="font-mono text-[11px] text-foreground">{run}</span>
+                  <StatusDot state={reviewState} label={reviewLabel} className="text-xs" />
+                </Link>
+              );
+            })
           )}
         </div>
       </div>
