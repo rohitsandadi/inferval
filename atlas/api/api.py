@@ -186,6 +186,21 @@ def _load_repos() -> list:
             entry = _read_json(os.path.join(d, fn))
             if entry and entry.get("name") not in seen:
                 repos.append(entry)
+    d2 = os.path.join(_runs_root(), "evals.d")  # agent/UI-created evals win
+    if os.path.isdir(d2):
+        for r in repos:
+            sd = os.path.join(d2, r["name"].replace("/", "__"))
+            if not os.path.isdir(sd):
+                continue
+            by_name = {e["name"]: e for e in r.get("evals", [])}
+            for fn in sorted(os.listdir(sd)):
+                try:
+                    with open(os.path.join(sd, fn)) as f:
+                        e = json.load(f)
+                    by_name[e["name"]] = e
+                except (OSError, ValueError, KeyError):
+                    continue
+            r["evals"] = list(by_name.values())
     return repos
 
 
@@ -404,6 +419,9 @@ def create_run(body: dict):
         evals = [e for e in suite if e["name"] in set(picked)]
     else:  # all/auto ship the declared suite; auto is narrowed by the planner
         evals = list(suite)
+    if not evals:
+        raise HTTPException(422, "no evals defined for this repo — add them "
+                                 "via the MCP server or the Evals page")
 
     run_id = "r_" + uuid.uuid4().hex[:8]
     spec = {"schema": SCHEMA_VERSION, "run": run_id, "mode": mode,
@@ -449,7 +467,7 @@ def decide_proposal(run_id: str, proposal_id: str, body: dict):
 import importlib
 
 for _mod in ("atlas.api.sessions", "atlas.api.sandboxes",
-             "atlas.api.github_auth"):
+             "atlas.api.github_auth", "atlas.api.evals"):
     try:
         web_app.include_router(importlib.import_module(_mod).router)
     except Exception:

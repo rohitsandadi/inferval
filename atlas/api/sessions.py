@@ -109,6 +109,21 @@ def _load_repos() -> list:
             entry = _read_json(os.path.join(d, fn))
             if entry and entry.get("name") not in seen:
                 repos.append(entry)
+    d2 = os.path.join(_runs_root(), "evals.d")  # agent/UI-created evals win
+    if os.path.isdir(d2):
+        for r in repos:
+            sd = os.path.join(d2, r["name"].replace("/", "__"))
+            if not os.path.isdir(sd):
+                continue
+            by_name = {e["name"]: e for e in r.get("evals", [])}
+            for fn in sorted(os.listdir(sd)):
+                try:
+                    with open(os.path.join(sd, fn)) as f:
+                        e = json.load(f)
+                    by_name[e["name"]] = e
+                except (OSError, ValueError, KeyError):
+                    continue
+            r["evals"] = list(by_name.values())
     return repos
 
 
