@@ -95,7 +95,7 @@ function StageBadge({ stage }: { stage: Stage }) {
     <Badge
       variant="outline"
       className={cn(
-        "rounded-full font-mono text-[10px]",
+        "rounded-full font-mono text-[12px]",
         stage.state === "done" && "text-muted-foreground",
         stage.state === "current" && "border-live/45 bg-live/10 text-live",
         stage.state === "bad" && "border-bad/40 text-bad",
@@ -290,7 +290,7 @@ export default function SessionPage({
   useEffect(() => {
     setTopbarRight(
       <span className="flex items-center gap-2.5">
-        <span className="font-mono text-[11px] text-faint">session {id}</span>
+        <span className="font-mono text-[13px] text-faint">session {id}</span>
         <StatusDot
           state={working ? "busy" : "idle"}
           label={working ? "Active" : "Idle"}
@@ -356,14 +356,14 @@ export default function SessionPage({
       {/* PR header band */}
       <div className="flex flex-col gap-1.5 border-b border-border-soft px-4 py-2.5">
         <div className="flex flex-wrap items-center gap-2.5">
-          <span className="text-[13px] font-semibold">
+          <span className="text-[14px] font-semibold">
             {pr?.title ?? detail.branch ?? id}
           </span>
           {pr && (
             <a href={pr.url} target="_blank" rel="noreferrer">
               <Badge
                 variant="outline"
-                className="rounded-full border-live/45 bg-live/10 font-mono text-[10px] text-live"
+                className="rounded-full border-live/45 bg-live/10 font-mono text-[12px] text-live"
               >
                 PR #{pr.number}
               </Badge>
@@ -376,12 +376,12 @@ export default function SessionPage({
               className="text-xs"
             />
           )}
-          <span className="font-mono text-[10.5px] text-faint">
+          <span className="font-mono text-[12px] text-faint">
             {detail.branch ?? "—"} → {pr?.base ?? repo?.default_branch ?? "—"}
             {pr?.head ? ` · ${pr.head.slice(0, 8)}` : ""}
           </span>
           {doneRun && (
-            <span className="ml-auto font-mono text-[10.5px] text-faint">
+            <span className="ml-auto font-mono text-[12px] text-faint">
               review {doneRun.run}
               {doneRun.cost_usd != null ? ` · ${fmtCost(doneRun.cost_usd)}` : ""}
             </span>
@@ -393,13 +393,13 @@ export default function SessionPage({
               <span key={s.label} className="flex items-center gap-1">
                 <StageBadge stage={s} />
                 {i < stages.length - 1 && (
-                  <span className="text-[10px] text-faint">→</span>
+                  <span className="text-[12px] text-faint">→</span>
                 )}
               </span>
             ))}
           </span>
           {pr?.body && (
-            <span className="max-w-[46ch] truncate pl-2 text-[11.5px] italic text-muted-foreground">
+            <span className="max-w-[46ch] truncate pl-2 text-[13px] italic text-muted-foreground">
               “{pr.body}”
             </span>
           )}
@@ -408,8 +408,8 @@ export default function SessionPage({
 
       {/* three columns: tree · diff · session */}
       <div className="flex min-h-0 flex-1 max-md:flex-col">
-        <div className="w-[148px] shrink-0 border-r border-border-soft p-2.5 text-[11px] max-md:w-full max-md:border-b max-md:border-r-0">
-          <p className="text-[10px] uppercase tracking-wide text-faint">
+        <div className="w-[148px] shrink-0 border-r border-border-soft p-2.5 text-[13px] max-md:w-full max-md:border-b max-md:border-r-0">
+          <p className="text-[12px] uppercase tracking-wide text-faint">
             {files.length === 0
               ? "no diff"
               : `${files.length} file${files.length === 1 ? "" : "s"} changed`}
@@ -421,7 +421,7 @@ export default function SessionPage({
                 type="button"
                 onClick={() => setActiveFile(f.path)}
                 className={cn(
-                  "flex items-center justify-between gap-1.5 rounded-md border border-transparent px-2 py-0.5 text-left font-mono text-[10.5px] text-muted-foreground hover:text-foreground",
+                  "flex items-center justify-between gap-1.5 rounded-md border border-transparent px-2 py-0.5 text-left font-mono text-[12px] text-muted-foreground hover:text-foreground",
                   f.path === (file?.path ?? "") &&
                     "border-border-soft bg-surface text-foreground",
                 )}
@@ -435,10 +435,10 @@ export default function SessionPage({
           </div>
           {triaged && (
             <>
-              <p className="mt-4 text-[10px] uppercase tracking-wide text-faint">
+              <p className="mt-4 text-[12px] uppercase tracking-wide text-faint">
                 Coverage
               </p>
-              <div className="mt-1.5 flex flex-col gap-1 text-[10.5px] text-muted-foreground">
+              <div className="mt-1.5 flex flex-col gap-1 text-[12px] text-muted-foreground">
                 <span>
                   {covered} {covered === 1 ? "risk" : "risks"} covered
                 </span>
@@ -473,14 +473,14 @@ export default function SessionPage({
 
           {triaged && (
             <div className="mt-3 rounded-lg border border-border-soft p-3">
-              <p className="text-[11px] font-medium">Annotation → eval chain</p>
-              <div className="mt-1.5 flex flex-col gap-1 text-[10.5px]">
+              <p className="text-[13px] font-medium">Annotation → eval chain</p>
+              <div className="mt-1.5 flex flex-col gap-1 text-[12px]">
                 {annotations.map((a) => {
                   const d = draftByOrigin.get(a.id);
                   return (
                     <div key={a.id} className="flex flex-wrap items-baseline gap-2">
                       <RiskTag risk={a.risk} />
-                      <span className="font-mono text-[10px] text-faint">
+                      <span className="font-mono text-[12px] text-faint">
                         {a.id} ·{" "}
                         {a.start_line === a.end_line
                           ? a.start_line
@@ -492,7 +492,7 @@ export default function SessionPage({
                           <CoverageChip label="gap" gap />
                           {d && (
                             <>
-                              <span className="text-[9.5px] text-faint">
+                              <span className="text-[11px] text-faint">
                                 → draft
                               </span>
                               <CoverageChip label={d.name} />
@@ -514,7 +514,7 @@ export default function SessionPage({
           {triaged && !doneRun && (
             <div className="mt-3 flex items-center justify-between gap-3 rounded-lg border border-border-soft p-3">
               <div className="min-w-0">
-                <p className="text-[11px] font-medium">Run plan</p>
+                <p className="text-[13px] font-medium">Run plan</p>
                 <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
                   {annotations.map((a) =>
                     a.coverage === "gap" ? (
@@ -526,7 +526,7 @@ export default function SessionPage({
                           <CoverageChip
                             label={draftByOrigin.get(a.id)!.name}
                           />
-                          <span className="text-[9.5px] text-faint">
+                          <span className="text-[11px] text-faint">
                             ← {a.id} ·{" "}
                             {draftByOrigin.get(a.id)!.status === "proposed"
                               ? "pending approve"
@@ -538,13 +538,13 @@ export default function SessionPage({
                       (a.coverage as string[]).map((c) => (
                         <span key={`${a.id}-${c}`} className="flex items-center gap-1">
                           <CoverageChip label={c} />
-                          <span className="text-[9.5px] text-faint">← {a.id}</span>
+                          <span className="text-[11px] text-faint">← {a.id}</span>
                         </span>
                       ))
                     ),
                   )}
                 </div>
-                <p className="mt-1.5 font-mono text-[9.5px] text-faint">
+                <p className="mt-1.5 font-mono text-[11px] text-faint">
                   {repo?.gpu ?? "—"} · verdict from inferval.yaml thresholds
                 </p>
               </div>
@@ -561,8 +561,8 @@ export default function SessionPage({
           {doneRun && linkedReport?.run === doneRun.run && (
             <div className="mt-3 flex items-center justify-between gap-3 rounded-lg border border-border-soft p-3">
               <div className="min-w-0">
-                <p className="text-[11px] font-medium">Diagnosis</p>
-                <p className="mt-1 line-clamp-2 text-[11px] text-muted-foreground">
+                <p className="text-[13px] font-medium">Diagnosis</p>
+                <p className="mt-1 line-clamp-2 text-[13px] text-muted-foreground">
                   {linkedReport.investigation?.diagnosis?.text ??
                     linkedReport.summary[0] ??
                     "—"}
@@ -584,8 +584,8 @@ export default function SessionPage({
 
         <div className="flex w-[330px] shrink-0 flex-col border-l border-border-soft max-md:w-full max-md:border-l-0 max-md:border-t">
           <div className="flex items-center justify-between gap-2 border-b border-border-soft px-3 py-2">
-            <span className="text-[11.5px] font-medium">Session</span>
-            <span className="font-mono text-[10px] text-faint">
+            <span className="text-[13px] font-medium">Session</span>
+            <span className="font-mono text-[12px] text-faint">
               {id}
               {pr ? ` · PR #${pr.number}` : ""}
             </span>

@@ -32,7 +32,7 @@ function TierBadge({ tier }: { tier: Tier }) {
     <Badge
       variant="outline"
       className={cn(
-        "w-14 justify-center rounded-[4px] px-1.5 font-mono text-[10px]",
+        "w-14 justify-center rounded-[4px] px-1.5 font-mono text-[12px]",
         tierStyles[tier] ?? tierStyles.system,
       )}
     >
@@ -140,7 +140,7 @@ function Sparkline({ tele }: { tele: Telemetry }) {
           );
         })}
       </svg>
-      <span className="whitespace-nowrap font-mono text-[10px] text-faint">
+      <span className="whitespace-nowrap font-mono text-[12px] text-faint">
         {secs}s · util x̄ {mean}%{mem !== null ? ` · ${mem} MB` : ""}
       </span>
     </div>
@@ -160,11 +160,11 @@ function SpanRow({ event }: { event: InfervalEvent }) {
   return (
     <>
       <div className="ml-1 flex flex-wrap items-baseline gap-x-2.5 gap-y-1 border-l border-border-soft py-1.5 pl-2.5">
-        <span className="w-14 shrink-0 font-mono text-[10px] tabular-nums text-faint">
+        <span className="w-14 shrink-0 font-mono text-[12px] tabular-nums text-faint">
           {fmtTime(event.t)}
         </span>
         <TierBadge tier={event.tier} />
-        <code className="font-mono text-[11px] text-foreground/90">
+        <code className="font-mono text-[13px] text-foreground/90">
           {event.kind}
         </code>
         <span className="min-w-0 text-xs text-muted-foreground">
@@ -175,7 +175,7 @@ function SpanRow({ event }: { event: InfervalEvent }) {
             key={r}
             href={artifactUrl(runId, r) ?? `#artifact-${encodeURIComponent(r)}`}
             title={`evidence artifact: ${r}`}
-            className="font-mono text-[10.5px] text-live hover:underline"
+            className="font-mono text-[12px] text-live hover:underline"
           >
             {r}
           </a>
@@ -218,21 +218,21 @@ function PhaseDurations({ events }: { events: InfervalEvent[] }) {
   if (bars.length < 2) return null;
   return (
     <div className="mb-3">
-      <p className="text-[11px] text-faint">Phase durations</p>
+      <p className="text-[13px] text-faint">Phase durations</p>
       <div className="mt-1.5 max-w-[560px]">
         {bars.map((b) => (
           <div
             key={b.label}
             className="grid grid-cols-[88px_1fr_56px] items-center gap-2.5 py-0.5"
           >
-            <span className="text-[11px] text-muted-foreground">{b.label}</span>
+            <span className="text-[13px] text-muted-foreground">{b.label}</span>
             <span className="min-w-0">
               <span
                 className="block h-[7px] min-w-[2px] rounded-[2px] bg-[#3F3F3F]"
                 style={{ width: `${Math.max(0.5, (b.seconds / max) * 100)}%` }}
               />
             </span>
-            <span className="text-right font-mono text-[10px] tabular-nums text-faint">
+            <span className="text-right font-mono text-[12px] tabular-nums text-faint">
               {b.seconds >= 60 ? fmtClock(b.seconds) : `${b.seconds}s`}
             </span>
           </div>
@@ -250,7 +250,7 @@ export function Trace({ events }: { events: InfervalEvent[] }) {
       {groups.map((g, gi) => (
         <Collapsible key={`${g.phase}-${gi}`} defaultOpen>
           <CollapsibleTrigger className="group mt-2 flex w-full items-center gap-2 text-left">
-            <span className="text-[11px] text-faint">{g.phase}</span>
+            <span className="text-[13px] text-faint">{g.phase}</span>
             <span className="h-px flex-1 bg-border-soft" />
             <ChevronDown className="size-3 text-faint transition-transform group-data-[panel-open]:rotate-180" />
           </CollapsibleTrigger>

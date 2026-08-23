@@ -13,7 +13,10 @@ import {
 import { useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { AppTopbar } from "@/components/app-topbar";
+import { Brand } from "@/components/brand";
 import { NewReviewDialog } from "@/components/new-review-dialog";
 import { RepoSidebar } from "@/components/repo-sidebar";
 import { RepoShellContext, type Crumb } from "@/components/repo-shell";
@@ -86,12 +89,19 @@ export default function RepoLayout({
           workspace ? "h-dvh overflow-hidden" : "min-h-dvh",
         )}
       >
-        <header className="flex items-center justify-between gap-3 border-b border-border-soft px-4 py-2">
-          <nav className="flex min-w-0 items-center gap-2 text-[13px]">
-            <Link href="/" className="font-semibold text-foreground">
-              inferval
-            </Link>
-            <span className="text-faint">/</span>
+        <AppTopbar
+          actions={
+            topbarRight ?? (
+              <Button size="sm" onClick={() => openNewReview()}>
+                <Plus data-icon="inline-start" />
+                New review
+              </Button>
+            )
+          }
+        >
+          <nav className="flex min-w-0 items-center gap-2.5 text-sm">
+            <Brand className="mr-1" />
+            <span className="h-5 w-px shrink-0 bg-border" aria-hidden />
             <Link
               href={base}
               className={cn(
@@ -127,12 +137,7 @@ export default function RepoLayout({
               </span>
             ))}
           </nav>
-          {topbarRight ?? (
-            <Button size="sm" onClick={() => openNewReview()}>
-              New review
-            </Button>
-          )}
-        </header>
+        </AppTopbar>
         {/* The PR/session workspace is full-bleed: no sidebar, no padding. */}
         {workspace ? (
           <main className="flex min-h-0 min-w-0 flex-1 flex-col">
@@ -141,8 +146,8 @@ export default function RepoLayout({
         ) : (
           <div className="flex flex-1 max-md:flex-col">
             <RepoSidebar owner={owner} name={name} />
-            <main className="min-w-0 flex-1 px-6 py-5">
-              <div className="mx-auto max-w-[1240px]">{children}</div>
+            <main className="min-w-0 flex-1 px-8 py-8 max-lg:px-5">
+              <div className="mx-auto max-w-[1420px]">{children}</div>
             </main>
           </div>
         )}

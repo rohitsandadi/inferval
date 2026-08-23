@@ -39,8 +39,8 @@ function ActChip({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex items-baseline gap-2 overflow-hidden rounded-md border border-border-soft bg-surface px-2 py-1 font-mono text-[10px] text-muted-foreground">
-      <span className="shrink-0 text-[9px] text-faint">{k}</span>
+    <div className="flex items-baseline gap-2 overflow-hidden rounded-md border border-border-soft bg-surface px-2 py-1 font-mono text-[12px] text-muted-foreground">
+      <span className="shrink-0 text-[11px] text-faint">{k}</span>
       <span className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">
         {children}
       </span>
@@ -62,16 +62,16 @@ function CardShell({
   return (
     <div
       className={cn(
-        "rounded-lg border p-2.5 text-[11px]",
+        "rounded-lg border p-2.5 text-[13px]",
         emphasized ? "border-border" : "border-border-soft",
       )}
     >
       <div className="flex items-baseline justify-between gap-2">
-        <span className="font-mono text-[9.5px] tracking-wide text-faint">
+        <span className="font-mono text-[11px] tracking-wide text-faint">
           {kind}
         </span>
         {time && (
-          <span className="font-mono text-[9.5px] text-faint">{time}</span>
+          <span className="font-mono text-[11px] text-faint">{time}</span>
         )}
       </div>
       {children}
@@ -90,10 +90,10 @@ function TriageCard({ e }: { e: InfervalEvent }) {
   const anns = (e.detail.annotations as Annotation[] | undefined) ?? [];
   return (
     <CardShell kind="triage" time={hms(e.t)}>
-      <div className="mt-1 text-[11px]">{str(e.detail.summary)}</div>
+      <div className="mt-1 text-[13px]">{str(e.detail.summary)}</div>
       {anns.map((a) => (
-        <div key={a.id} className="flex flex-wrap items-baseline gap-1.5 py-0.5 text-[10.5px]">
-          <span className="w-[18px] shrink-0 font-mono text-[9.5px] text-faint">
+        <div key={a.id} className="flex flex-wrap items-baseline gap-1.5 py-0.5 text-[12px]">
+          <span className="w-[18px] shrink-0 font-mono text-[11px] text-faint">
             {a.id}
           </span>
           <RiskTag risk={a.risk} />
@@ -114,7 +114,7 @@ function EnvDecisionCard({ e }: { e: InfervalEvent }) {
           <span
             key={o}
             className={cn(
-              "rounded-md border px-2 py-0.5 font-mono text-[10px]",
+              "rounded-md border px-2 py-0.5 font-mono text-[12px]",
               o === kind
                 ? "border-foreground text-foreground"
                 : "border-border-soft text-faint",
@@ -124,11 +124,11 @@ function EnvDecisionCard({ e }: { e: InfervalEvent }) {
           </span>
         ))}
       </div>
-      <p className="mt-1.5 text-[10.5px] text-muted-foreground">
+      <p className="mt-1.5 text-[12px] text-muted-foreground">
         {str(e.detail.reason)}
       </p>
       {e.detail.est_cost !== undefined && (
-        <p className="mt-1 font-mono text-[9.5px] text-faint">
+        <p className="mt-1 font-mono text-[11px] text-faint">
           est {str(e.detail.est_cost)}
         </p>
       )}
@@ -150,25 +150,25 @@ function EvalDraftCard({
   const settled = status !== "proposed";
   return (
     <CardShell kind={`eval draft · ${status}`} time={`${d.id} · from ${d.origin}`} emphasized={!settled}>
-      <div className="mt-1 font-mono text-[11px]">{d.name}</div>
-      <div className="mt-0.5 truncate font-mono text-[9.5px] text-faint">
+      <div className="mt-1 font-mono text-[13px]">{d.name}</div>
+      <div className="mt-0.5 truncate font-mono text-[11px] text-faint">
         {d.cmd}
       </div>
       <div className="mt-1.5 flex flex-wrap gap-1">
         {Object.entries(d.checks ?? {}).map(([m, t]) => (
           <span
             key={m}
-            className="rounded-full border border-border bg-surface px-1.5 font-mono text-[9.5px] leading-4 text-muted-foreground"
+            className="rounded-full border border-border bg-surface px-1.5 font-mono text-[11px] leading-4 text-muted-foreground"
           >
             {m} ≤ {t}
           </span>
         ))}
-        <span className="rounded-full border border-border bg-surface px-1.5 font-mono text-[9.5px] leading-4 text-muted-foreground">
+        <span className="rounded-full border border-border bg-surface px-1.5 font-mono text-[11px] leading-4 text-muted-foreground">
           {d.est_gpu_seconds} GPU-s
         </span>
       </div>
       <div className="mt-2 flex items-center justify-between gap-2 border-t border-border-soft pt-2">
-        <span className="text-[10px] text-faint">
+        <span className="text-[12px] text-faint">
           {settled
             ? status === "approved"
               ? "joins the suite"
@@ -213,13 +213,13 @@ function SandboxProposalCard({
   return (
     <CardShell kind={`sandbox_proposed · ${str(e.detail.id)}`} time={hms(e.t)}>
       <div className="mt-1 flex items-center gap-2">
-        <span className="font-mono text-[11px]">{str(e.detail.gpu)}</span>
-        <StatusDot state={dot.state} label={dot.label} className="text-[10.5px]" />
-        <span className="ml-auto font-mono text-[9.5px] text-faint">
+        <span className="font-mono text-[13px]">{str(e.detail.gpu)}</span>
+        <StatusDot state={dot.state} label={dot.label} className="text-[12px]" />
+        <span className="ml-auto font-mono text-[11px] text-faint">
           {str(e.detail.est_cost)}
         </span>
       </div>
-      <p className="mt-1 text-[10.5px] text-muted-foreground">
+      <p className="mt-1 text-[12px] text-muted-foreground">
         {str(e.detail.reason)}
       </p>
     </CardShell>
@@ -243,16 +243,16 @@ function ReviewSubmittedCard({
   return (
     <CardShell kind="review_submitted" time={hms(e.t)}>
       <div className="mt-1 flex items-center gap-2">
-        <span className="font-mono text-[11px]">{run}</span>
-        <StatusDot state={dot.state} label={dot.label} className="text-[10.5px]" />
+        <span className="font-mono text-[13px]">{run}</span>
+        <StatusDot state={dot.state} label={dot.label} className="text-[12px]" />
       </div>
-      <div className="mt-1 font-mono text-[9.5px] text-faint">
+      <div className="mt-1 font-mono text-[11px] text-faint">
         {str(e.detail.head)} → {str(e.detail.base)} ·{" "}
         {Array.isArray(evals) ? `${evals.length} evals` : str(evals)}
         {linked?.cost_usd != null ? ` · $${linked.cost_usd.toFixed(2)}` : ""}
       </div>
       <div className="mt-2 flex items-center justify-between gap-2 border-t border-border-soft pt-2">
-        <span className="text-[10px] text-faint">
+        <span className="text-[12px] text-faint">
           verdict is policy, not the session
         </span>
         <Button
@@ -296,7 +296,7 @@ function ThinkingBlock({ events }: { events: InfervalEvent[] }) {
   return (
     <div className="flex flex-col gap-0.5 pl-0.5">
       {shown.map((e, i) => (
-        <span key={i} className="text-[10.5px] text-faint">
+        <span key={i} className="text-[12px] text-faint">
           ▸ {str(e.detail.text)}
         </span>
       ))}
@@ -304,7 +304,7 @@ function ThinkingBlock({ events }: { events: InfervalEvent[] }) {
         <button
           type="button"
           onClick={() => setExpanded((x) => !x)}
-          className="self-start text-[10px] text-faint hover:text-foreground"
+          className="self-start text-[12px] text-faint hover:text-foreground"
         >
           {expanded ? "collapse" : `▸ ${events.length - 2} more`}
         </button>
@@ -322,8 +322,8 @@ function WorkingIndicator({ since }: { since: string }) {
   const s = Math.max(0, (now - new Date(since).getTime()) / 1000);
   return (
     <div className="flex items-center gap-2 pl-0.5">
-      <StatusDot state="busy" label="Turn running" className="text-[10.5px]" />
-      <span className="font-mono text-[10px] tabular-nums text-faint">
+      <StatusDot state="busy" label="Turn running" className="text-[12px]" />
+      <span className="font-mono text-[12px] tabular-nums text-faint">
         {fmtClock(s)}
       </span>
     </div>
@@ -400,9 +400,9 @@ export function SessionPane({
               return (
                 <div
                   key={i}
-                  className="rounded-lg border border-border bg-surface px-2.5 py-1.5 text-[11.5px]"
+                  className="rounded-lg border border-border bg-surface px-2.5 py-1.5 text-[13px]"
                 >
-                  <div className="mb-0.5 font-mono text-[9.5px] text-faint">
+                  <div className="mb-0.5 font-mono text-[11px] text-faint">
                     you · {hm(e.t)}
                   </div>
                   {str(e.detail.text)}
@@ -410,7 +410,7 @@ export function SessionPane({
               );
             case "agent_message":
               return (
-                <p key={i} className="px-0.5 text-[11.5px] text-muted-foreground">
+                <p key={i} className="px-0.5 text-[13px] text-muted-foreground">
                   {str(e.detail.text)}
                 </p>
               );
@@ -480,8 +480,8 @@ export function SessionPane({
             case "error":
               return (
                 <div key={i} className="flex items-baseline gap-2 px-0.5">
-                  <StatusDot state="bad" label="Error" className="text-[10.5px]" />
-                  <span className="min-w-0 break-words font-mono text-[10px] text-muted-foreground">
+                  <StatusDot state="bad" label="Error" className="text-[12px]" />
+                  <span className="min-w-0 break-words font-mono text-[12px] text-muted-foreground">
                     {str(e.detail.error)}
                   </span>
                 </div>
@@ -505,7 +505,7 @@ export function SessionPane({
           }}
           disabled={sending}
           placeholder="Message the session…"
-          className="h-8 text-[11.5px]"
+          className="h-10 text-sm"
         />
       </div>
     </div>

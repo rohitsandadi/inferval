@@ -27,7 +27,7 @@ export function ReportSection({ report }: { report: Report }) {
           <p className="flex items-center gap-2 text-xs font-medium">
             Diagnosis
             {inv.diagnosis.confidence && (
-              <Badge variant="outline" className="rounded-full text-[10px] text-muted-foreground">
+              <Badge variant="outline" className="rounded-full text-[12px] text-muted-foreground">
                 {inv.diagnosis.confidence} confidence
               </Badge>
             )}
@@ -81,7 +81,7 @@ export function ReportSection({ report }: { report: Report }) {
               />
             </div>
             <CollapsibleContent>
-              <pre className="mt-2 overflow-x-auto rounded-lg border border-border-soft bg-surface p-3 font-mono text-[11px] leading-relaxed text-muted-foreground">
+              <pre className="mt-2 overflow-x-auto rounded-lg border border-border-soft bg-surface p-3 font-mono text-[13px] leading-relaxed text-muted-foreground">
                 {JSON.stringify(inv.fix_context, null, 2)}
               </pre>
             </CollapsibleContent>

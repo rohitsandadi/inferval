@@ -123,7 +123,7 @@ export default function SandboxesPage({
 
   useEffect(() => {
     setTopbarRight(
-      <span className="font-mono text-[11px] text-faint">
+      <span className="font-mono text-[13px] text-faint">
         {gpuSecondsToday} GPU-s today
       </span>,
     );
@@ -151,7 +151,7 @@ export default function SandboxesPage({
   };
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-5">
       <Tabs value={tab} onValueChange={(v) => setTab(v as "active" | "all")}>
         <TabsList>
           <TabsTrigger value="active">Active</TabsTrigger>
@@ -169,15 +169,15 @@ export default function SandboxesPage({
         <Table>
           <TableHeader>
             <TableRow className="border-border-soft hover:bg-transparent">
-              <TableHead className="text-[11px] font-normal text-faint">Sandbox</TableHead>
-              <TableHead className="text-[11px] font-normal text-faint">GPU</TableHead>
-              <TableHead className="text-[11px] font-normal text-faint">State</TableHead>
-              <TableHead className="text-[11px] font-normal text-faint">Uptime</TableHead>
-              <TableHead className="text-[11px] font-normal text-faint">Attached to</TableHead>
-              <TableHead className="text-right text-[11px] font-normal text-faint">
+              <TableHead className="text-[13px] font-normal text-faint">Sandbox</TableHead>
+              <TableHead className="text-[13px] font-normal text-faint">GPU</TableHead>
+              <TableHead className="text-[13px] font-normal text-faint">State</TableHead>
+              <TableHead className="text-[13px] font-normal text-faint">Uptime</TableHead>
+              <TableHead className="text-[13px] font-normal text-faint">Attached to</TableHead>
+              <TableHead className="text-right text-[13px] font-normal text-faint">
                 GPU-s
               </TableHead>
-              <TableHead className="text-right text-[11px] font-normal text-faint" />
+              <TableHead className="text-right text-[13px] font-normal text-faint" />
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -219,7 +219,7 @@ export default function SandboxesPage({
                   <TableCell className="text-xs">
                     <Uptime row={r} />
                   </TableCell>
-                  <TableCell className="font-mono text-[11px] text-muted-foreground">
+                  <TableCell className="font-mono text-[13px] text-muted-foreground">
                     {r.attached?.session ? (
                       <Link
                         href={`/repo/${owner}/${name}/sessions/${r.attached.session}`}
@@ -285,29 +285,29 @@ export default function SandboxesPage({
 
       {feed && feed.events.length > 0 && (
         <div className="pt-3">
-          <p className="text-[11px] text-faint">Activity — {feed.sandbox}</p>
+          <p className="text-[13px] text-faint">Activity — {feed.sandbox}</p>
           <div className="mt-1.5">
             {feed.events.map((e, i) => (
               <div
                 key={i}
                 className="ml-1 flex flex-wrap items-baseline gap-x-2.5 gap-y-0.5 border-l border-border-soft py-1 pl-2.5"
               >
-                <span className="w-14 shrink-0 font-mono text-[10px] tabular-nums text-faint">
+                <span className="w-14 shrink-0 font-mono text-[12px] tabular-nums text-faint">
                   {fmtTime(e.t)}
                 </span>
-                <code className="min-w-0 break-all font-mono text-[11px] text-muted-foreground">
+                <code className="min-w-0 break-all font-mono text-[13px] text-muted-foreground">
                   $ {String(e.detail.cmd ?? "")}
                 </code>
-                <span className="font-mono text-[10px] text-faint">
+                <span className="font-mono text-[12px] text-faint">
                   exit {String(e.detail.exit ?? "—")}
                 </span>
               </div>
             ))}
             <div className="ml-1 flex items-baseline gap-2.5 border-l border-border-soft py-1 pl-2.5">
-              <span className="w-14 shrink-0 font-mono text-[10px] text-faint">
+              <span className="w-14 shrink-0 font-mono text-[12px] text-faint">
                 now
               </span>
-              <span className="text-[11px] text-faint">
+              <span className="text-[13px] text-faint">
                 session {feed.session} holds this sandbox — TTL resets on exec ·
                 network blocked
               </span>

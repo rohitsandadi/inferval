@@ -15,7 +15,7 @@ export function RepoSidebar({ owner, name }: { owner: string; name: string }) {
     { label: "Sandboxes", href: `${base}/sandboxes`, exact: false },
   ];
   return (
-    <nav className="flex w-[170px] shrink-0 flex-col gap-0.5 border-r border-border-soft px-2.5 py-3 max-md:w-full max-md:flex-row max-md:flex-wrap max-md:border-r-0 max-md:border-b">
+    <nav className="flex w-[220px] shrink-0 flex-col gap-1.5 border-r border-border-soft bg-sidebar px-4 py-6 max-md:w-full max-md:flex-row max-md:flex-wrap max-md:border-r-0 max-md:border-b max-md:py-3">
       {items.map((item) => {
         const active = item.exact
           ? pathname === item.href
@@ -25,8 +25,8 @@ export function RepoSidebar({ owner, name }: { owner: string; name: string }) {
             key={item.href}
             href={item.href}
             className={cn(
-              "rounded-md border border-transparent px-2.5 py-1 text-[13px] text-muted-foreground hover:text-foreground",
-              active && "border-border-soft bg-surface text-foreground",
+              "rounded-lg border border-transparent px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted/45 hover:text-foreground",
+              active && "border-border bg-surface text-foreground shadow-sm",
             )}
           >
             {item.label}

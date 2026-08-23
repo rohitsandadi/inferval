@@ -88,7 +88,7 @@ export function ConnectRepoDialog({
             onChange={(e) => setPublicName(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && addPublic()}
             placeholder="Public repo: owner/repo"
-            className="h-8 font-mono text-xs"
+            className="h-9 font-mono text-sm"
             disabled={isMock}
           />
           <Button
@@ -128,19 +128,19 @@ export function ConnectRepoDialog({
               >
                 <div className="min-w-0">
                   <span className="block truncate font-mono text-xs">{r.name}</span>
-                  <span className="text-[11px] text-faint">
+                  <span className="text-[13px] text-faint">
                     {r.default_branch}
                     {r.pushed_at ? ` · ${fmtRelative(r.pushed_at)}` : ""}
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
                   {r.private && (
-                    <Badge variant="outline" className="rounded-full font-mono text-[10px] text-muted-foreground">
+                    <Badge variant="outline" className="rounded-full font-mono text-[12px] text-muted-foreground">
                       private
                     </Badge>
                   )}
                   {taken.has(r.name) ? (
-                    <span className="text-[11px] text-faint">connected</span>
+                    <span className="text-[13px] text-faint">connected</span>
                   ) : (
                     <Button
                       size="sm"

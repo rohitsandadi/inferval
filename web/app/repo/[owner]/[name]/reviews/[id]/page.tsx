@@ -22,6 +22,7 @@ import {
 import { ChecksTable } from "@/components/checks-table";
 import { ProposalZone, type ProposalWithTime } from "@/components/proposal-card";
 import { ReportSection } from "@/components/report-section";
+import { RunPipeline } from "@/components/run-pipeline";
 import { StatusDot, verdictDot } from "@/components/status-dot";
 import { Trace } from "@/components/trace";
 import { useRepoShell } from "@/components/repo-shell";
@@ -32,8 +33,7 @@ import {
   useRunQuery,
 } from "@/lib/queries";
 import { fmtClock, fmtCost, shortSha } from "@/lib/format";
-import { STATUS_CHIPS, statusFromEvents } from "@/lib/phases";
-import { cn } from "@/lib/utils";
+import { statusFromEvents } from "@/lib/phases";
 import type {
   InfervalEvent,
   Investigation,
@@ -161,7 +161,7 @@ export default function ReviewPage({
           <Tooltip>
             <TooltipTrigger
               render={
-                <span className="font-mono text-[11px] text-faint">
+                <span className="font-mono text-[13px] text-faint">
                   {fmtCost(cost)}
                 </span>
               }
@@ -188,7 +188,6 @@ export default function ReviewPage({
 
   const verdict = detail.verdict;
   const claim = verdict?.claim?.text ?? spec?.claim;
-  const currentIdx = STATUS_CHIPS.findIndex((c) => c.status === status);
   const dot = verdictDot(verdictVisible ? (verdict?.verdict ?? null) : null, status);
   const prNumber = branch
     ? (branches.find((b) => b.name === branch)?.pr?.number ?? null)
@@ -204,33 +203,19 @@ export default function ReviewPage({
   const gpuSeconds = cost !== null ? Math.round(cost / GPU_USD_PER_S) : null;
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-5">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
         <span className="font-mono text-sm">{id}</span>
-        <span className="font-mono text-[11px] text-muted-foreground">
+        <span className="font-mono text-[13px] text-muted-foreground">
           {headLabel} → {baseLabel}
         </span>
         <StatusDot state={dot.state} label={dot.label} className="text-xs" />
         <span className="ml-auto flex items-center gap-3">
-          <span className="font-mono text-[10.5px] text-faint">
+          <span className="font-mono text-[12px] text-faint">
             {spec?.gpu ?? "—"} · {spec?.evals.length ?? "—"}{" "}
             {spec?.evals.length === 1 ? "eval" : "evals"}
             {wallS !== null ? ` · wall ${fmtClock(wallS)}` : ""}
             {gpuSeconds !== null ? ` · ${gpuSeconds} GPU-s` : ""}
-            {" · "}
-            {STATUS_CHIPS.map((chip, i) => (
-              <span key={chip.status}>
-                {i > 0 && "→"}
-                <span
-                  className={cn(
-                    i === currentIdx && "font-semibold text-foreground",
-                    i > currentIdx && "opacity-50",
-                  )}
-                >
-                  {chip.status}
-                </span>
-              </span>
-            ))}
           </span>
           {isMock && events.length > 0 && (
             <Button
@@ -244,6 +229,8 @@ export default function ReviewPage({
           )}
         </span>
       </div>
+
+      <RunPipeline status={status} />
 
       <Tabs defaultValue="verdict">
         <TabsList>
@@ -272,12 +259,12 @@ export default function ReviewPage({
                 {reportVisible &&
                   report?.investigation?.diagnosis?.text && (
                     <div className="rounded-lg border border-border-soft p-3">
-                      <p className="flex items-center gap-2 text-[11.5px] font-medium">
+                      <p className="flex items-center gap-2 text-[13px] font-medium">
                         Diagnosis
                         {report.investigation.diagnosis.confidence && (
                           <Badge
                             variant="outline"
-                            className="rounded-full font-mono text-[10px] text-muted-foreground"
+                            className="rounded-full font-mono text-[12px] text-muted-foreground"
                           >
                             {report.investigation.diagnosis.confidence}{" "}
                             confidence
@@ -291,7 +278,7 @@ export default function ReviewPage({
                   )}
                 {prNumber !== null && (
                   <div className="flex items-center justify-between gap-3 rounded-lg border border-border-soft px-3 py-2">
-                    <p className="min-w-0 text-[11px] text-muted-foreground">
+                    <p className="min-w-0 text-[13px] text-muted-foreground">
                       Results anchored on the diff
                     </p>
                     <Button
@@ -314,13 +301,13 @@ export default function ReviewPage({
                     <Collapsible>
                       <div className="rounded-lg border border-border-soft px-3 py-2">
                         <CollapsibleTrigger className="flex w-full items-center justify-between gap-3 text-left">
-                          <span className="font-mono text-[10.5px] text-muted-foreground">
+                          <span className="font-mono text-[12px] text-muted-foreground">
                             fix_context.json — for the coding agent
                           </span>
-                          <span className="text-[10px] text-faint">expand</span>
+                          <span className="text-[12px] text-faint">expand</span>
                         </CollapsibleTrigger>
                         <CollapsibleContent>
-                          <pre className="mt-2 overflow-x-auto font-mono text-[10px] leading-relaxed text-muted-foreground">
+                          <pre className="mt-2 overflow-x-auto font-mono text-[12px] leading-relaxed text-muted-foreground">
                             {JSON.stringify(
                               report.investigation.fix_context,
                               null,

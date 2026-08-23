@@ -75,12 +75,12 @@ export function ReviewTimeline({ items }: { items: TimelineItem[] }) {
                       </span>
                     )}
                     {run.cost_usd !== null && run.cost_usd !== undefined && (
-                      <span className="font-mono text-[11px] text-faint">
+                      <span className="font-mono text-[13px] text-faint">
                         {fmtCost(run.cost_usd)}
                       </span>
                     )}
                   </div>
-                  <p className="mt-0.5 text-[11px] text-faint">
+                  <p className="mt-0.5 text-[13px] text-faint">
                     {fmtRelative(item.t)}
                     {item.note ? ` · ${item.note}` : ""}
                   </p>
@@ -91,7 +91,7 @@ export function ReviewTimeline({ items }: { items: TimelineItem[] }) {
                     <span className="text-muted-foreground">{item.note}</span>
                   </div>
                   {item.t && (
-                    <p className="mt-0.5 text-[11px] text-faint">
+                    <p className="mt-0.5 text-[13px] text-faint">
                       {fmtRelative(item.t)}
                     </p>
                   )}

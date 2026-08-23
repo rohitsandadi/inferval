@@ -57,7 +57,7 @@ function RefField({
           value={value}
           onChange={(e) => onValue(e.target.value)}
           placeholder="SHA"
-          className="h-8 pr-8 font-mono text-xs"
+          className="h-9 pr-9 font-mono text-sm"
           autoFocus
         />
         <button
@@ -206,7 +206,7 @@ export function NewReviewDialog({
 
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1.5">
-            <Label htmlFor="nr-mode" className="text-[11px] text-muted-foreground">
+            <Label htmlFor="nr-mode" className="text-[13px] text-muted-foreground">
               Mode
             </Label>
             <Select
@@ -224,7 +224,7 @@ export function NewReviewDialog({
             </Select>
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="nr-evals" className="text-[11px] text-muted-foreground">
+            <Label htmlFor="nr-evals" className="text-[13px] text-muted-foreground">
               Evals
             </Label>
             <Select
@@ -270,7 +270,7 @@ export function NewReviewDialog({
           )}
 
           <div className="space-y-1.5">
-            <Label htmlFor="nr-base" className="text-[11px] text-muted-foreground">
+            <Label htmlFor="nr-base" className="text-[13px] text-muted-foreground">
               Base
             </Label>
             <RefField
@@ -284,7 +284,7 @@ export function NewReviewDialog({
           </div>
           {mode === "compare" && (
             <div className="space-y-1.5">
-              <Label htmlFor="nr-head" className="text-[11px] text-muted-foreground">
+              <Label htmlFor="nr-head" className="text-[13px] text-muted-foreground">
                 Head
               </Label>
               <RefField
@@ -299,7 +299,7 @@ export function NewReviewDialog({
           )}
 
           <div className="col-span-2 space-y-1.5">
-            <Label htmlFor="nr-claim" className="text-[11px] text-muted-foreground">
+            <Label htmlFor="nr-claim" className="text-[13px] text-muted-foreground">
               Claim
             </Label>
             <Input
@@ -310,10 +310,10 @@ export function NewReviewDialog({
                 setClaimEdited(true);
               }}
               placeholder="what the change is supposed to do"
-              className="h-8 text-xs"
+              className="h-9 text-sm"
             />
             {claimFromPR && headPR && (
-              <p className="text-[10px] text-faint">from PR #{headPR.number}</p>
+              <p className="text-[12px] text-faint">from PR #{headPR.number}</p>
             )}
           </div>
         </div>
@@ -323,7 +323,7 @@ export function NewReviewDialog({
             <Label htmlFor="nr-auto" className="text-xs">
               Auto-approve probes
             </Label>
-            <p className="text-[11px] text-faint">
+            <p className="text-[13px] text-faint">
               Follow-up experiments run without waiting for approval
             </p>
           </div>

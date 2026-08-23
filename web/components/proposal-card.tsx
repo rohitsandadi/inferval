@@ -50,7 +50,7 @@ function Countdown({ from }: { from: string }) {
   }, [from]);
   if (left <= 0) return null;
   return (
-    <span className="text-[11px] text-faint">
+    <span className="text-[13px] text-faint">
       expires in {Math.floor(left / 60)}:{String(left % 60).padStart(2, "0")}
     </span>
   );
@@ -96,7 +96,7 @@ function ProposalCard({
         <span className="font-mono text-xs text-faint">{proposal.id}</span>
         <span className="font-mono text-xs">{proposal.kind}</span>
         <StatusDot state={dot.state} label={dot.label} className="text-xs" />
-        <span className="ml-auto font-mono text-[11px] text-faint">
+        <span className="ml-auto font-mono text-[13px] text-faint">
           {pending ? "est " : ""}
           {est} GPU-s · {pending ? "~" : ""}${(est * GPU_USD_PER_S).toFixed(2)}
         </span>
@@ -105,7 +105,7 @@ function ProposalCard({
         {proposal.reason}
       </p>
       {Object.keys(proposal.params).length > 0 && (
-        <p className="mt-2 font-mono text-[10.5px] text-faint">
+        <p className="mt-2 font-mono text-[12px] text-faint">
           {JSON.stringify(proposal.params)}
         </p>
       )}

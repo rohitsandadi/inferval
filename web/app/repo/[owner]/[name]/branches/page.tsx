@@ -150,8 +150,8 @@ export default function BranchesPage({
   }, [rows, query]);
 
   return (
-    <div className="space-y-3">
-      <div className="flex flex-wrap items-center gap-2">
+    <div className="space-y-5">
+      <div className="flex flex-wrap items-center gap-3">
         <Select
           value={base ?? ""}
           onValueChange={(v) => setBaseChoice(v as string)}
@@ -174,11 +174,11 @@ export default function BranchesPage({
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search branches…"
-            className="h-7 w-52 pl-8 text-xs"
+            className="h-9 w-64 pl-9 text-sm"
           />
         </div>
         {rows && (
-          <span className="ml-auto text-[11px] text-faint">
+          <span className="ml-auto text-[13px] text-faint">
             {rows.length} {rows.length === 1 ? "branch" : "branches"} ·{" "}
             {rows.filter((b) => b.pr).length} PRs
           </span>
@@ -195,12 +195,12 @@ export default function BranchesPage({
         <Table>
           <TableHeader>
             <TableRow className="border-border-soft hover:bg-transparent">
-              <TableHead className="text-[11px] font-normal text-faint">Branch</TableHead>
-              <TableHead className="text-[11px] font-normal text-faint">Claim</TableHead>
-              <TableHead className="text-[11px] font-normal text-faint">vs {base}</TableHead>
-              <TableHead className="text-[11px] font-normal text-faint">Risks</TableHead>
-              <TableHead className="text-[11px] font-normal text-faint">Reviews</TableHead>
-              <TableHead className="text-[11px] font-normal text-faint">Cost</TableHead>
+              <TableHead className="text-[13px] font-normal text-faint">Branch</TableHead>
+              <TableHead className="text-[13px] font-normal text-faint">Claim</TableHead>
+              <TableHead className="text-[13px] font-normal text-faint">vs {base}</TableHead>
+              <TableHead className="text-[13px] font-normal text-faint">Risks</TableHead>
+              <TableHead className="text-[13px] font-normal text-faint">Reviews</TableHead>
+              <TableHead className="text-[13px] font-normal text-faint">Cost</TableHead>
               <TableHead />
             </TableRow>
           </TableHeader>
@@ -225,13 +225,13 @@ export default function BranchesPage({
                       {b.pr && (
                         <Badge
                           variant="outline"
-                          className="rounded-full border-live/45 bg-live/10 font-mono text-[10px] text-live"
+                          className="rounded-full border-live/45 bg-live/10 font-mono text-[12px] text-live"
                         >
                           PR #{b.pr.number}
                         </Badge>
                       )}
                     </span>
-                    <span className="mt-0.5 block font-mono text-[9.5px] text-faint">
+                    <span className="mt-0.5 block font-mono text-[11px] text-faint">
                       {b.sha}
                       {b.last_review ? ` · ${fmtRelativeShort(b.last_review.t)}` : ""}
                     </span>
