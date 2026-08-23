@@ -149,7 +149,17 @@ export function NewReviewDialog({
     setBase(repo.default_branch);
     setBaseCustom(false);
     setHeadCustom(false);
-    const h = defaultHead ?? headOptions[0] ?? "";
+    // Default head: the branch most in need of a review — an open PR that
+    // was never reviewed, else any unreviewed branch, else any PR branch,
+    // else the first branch. The claim below follows whichever wins.
+    const candidates = branches.filter((b) => b.name !== repo.default_branch);
+    const h =
+      defaultHead ??
+      candidates.find((b) => b.pr && b.state === "unverified")?.name ??
+      candidates.find((b) => b.state === "unverified")?.name ??
+      candidates.find((b) => b.pr)?.name ??
+      headOptions[0] ??
+      "";
     setHead(h);
     setClaimEdited(false);
     setClaim(branches.find((b) => b.name === h)?.pr?.claim ?? "");
@@ -313,7 +323,9 @@ export function NewReviewDialog({
               className="h-9 text-sm"
             />
             {claimFromPR && headPR && (
-              <p className="text-[12px] text-faint">from PR #{headPR.number}</p>
+              <p className="text-[12px] text-faint">
+                auto-filled from PR #{headPR.number} — edit to override
+              </p>
             )}
           </div>
         </div>
