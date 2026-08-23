@@ -128,3 +128,12 @@ arbitrary setup — is a static artifact, a one-sentence mention, or absent.
 valid and `old/REFERENCES.md` remains the link index for Modal/Greptile/prior
 art; v2 changes the framing, the agent's role, the entry surfaces, the demo
 repo, and the scope discipline.
+
+## Team
+
+Built at the Greptile hackathon by:
+
+- Bhavya Mehrotra
+- Rohit Sandadi
+- Sahith ([@sahith-p](https://github.com/sahith-p))
+- Yogya Mehrotra
