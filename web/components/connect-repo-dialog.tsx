@@ -17,7 +17,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
-import { connectRepo, githubLoginUrl, isMock } from "@/lib/api";
+import { connectRepo, githubLoginUrl } from "@/lib/api";
 import {
   queryKeys,
   useGithubReposQuery,
@@ -89,12 +89,11 @@ export function ConnectRepoDialog({
             onKeyDown={(e) => e.key === "Enter" && addPublic()}
             placeholder="Public repo: owner/repo"
             className="h-9 font-mono text-sm"
-            disabled={isMock}
           />
           <Button
             size="sm"
             variant="outline"
-            disabled={isMock || busy !== null || !publicName.trim()}
+            disabled={busy !== null || !publicName.trim()}
             onClick={addPublic}
           >
             Add
@@ -104,7 +103,6 @@ export function ConnectRepoDialog({
           <div className="flex justify-end">
             <Button
               size="sm"
-              disabled={isMock}
               onClick={() => {
                 const url = githubLoginUrl();
                 if (url) window.location.href = url;

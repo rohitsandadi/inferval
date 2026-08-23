@@ -4,6 +4,7 @@
 // review timeline — claim, red review, fix commit, re-verify — newest on top.
 
 import { use, useEffect, useMemo } from "react";
+import { ListChecks } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -87,7 +88,7 @@ export default function BranchDetailPage({
     runs.map((r) => r.base_sha).find(looksLikeSha);
 
   return (
-    <div className="space-y-1">
+    <div className="space-y-6">
       <div className="flex flex-wrap items-center gap-2.5">
         <span className="font-mono text-sm">{branchName}</span>
         {info?.pr && (
@@ -112,7 +113,26 @@ export default function BranchDetailPage({
         </blockquote>
       )}
 
-      <ReviewTimeline items={items} />
+      <section className="rounded-xl border border-border-soft bg-card p-5">
+        <div className="flex flex-wrap items-start justify-between gap-4 border-b border-border-soft pb-4">
+          <div className="flex min-w-0 gap-3">
+            <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-muted text-muted-foreground">
+              <ListChecks className="size-4" aria-hidden />
+            </span>
+            <div className="min-w-0">
+              <h2 className="text-base font-semibold">Reviews for this branch</h2>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Review runs whose head matches <span className="font-mono text-foreground">{branchName}</span>
+                {info?.pr ? `, including PR #${info.pr.number}` : ""}.
+              </p>
+            </div>
+          </div>
+          <Badge variant="secondary" className="font-mono">
+            {branchRuns.length} {branchRuns.length === 1 ? "review" : "reviews"}
+          </Badge>
+        </div>
+        <ReviewTimeline items={items} />
+      </section>
     </div>
   );
 }

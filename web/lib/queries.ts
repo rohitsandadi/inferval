@@ -12,7 +12,6 @@ import {
   getTelemetry,
   githubRepos,
   githubStatus,
-  listGapBornEvals,
   listRepos,
   listRuns,
   listSandboxes,
@@ -36,8 +35,6 @@ export const queryKeys = {
   sessionEvents: (id: string) =>
     [...queryKeys.all, "session-events", id] as const,
   sandboxes: (repo: string) => [...queryKeys.all, "sandboxes", repo] as const,
-  gapBornEvals: (repo: string) =>
-    [...queryKeys.all, "gap-born-evals", repo] as const,
   telemetry: (run: string, block: string) =>
     [...queryKeys.all, "telemetry", run, block] as const,
   githubStatus: () => [...queryKeys.all, "github", "status"] as const,
@@ -167,15 +164,6 @@ export function useSandboxesQuery(repo: string) {
     queryFn: () => listSandboxes(repo),
     enabled: Boolean(repo),
     refetchInterval: 10_000,
-  });
-}
-
-export function useGapBornEvalsQuery(repo: string) {
-  return useQuery({
-    queryKey: queryKeys.gapBornEvals(repo),
-    queryFn: () => listGapBornEvals(repo),
-    enabled: Boolean(repo),
-    staleTime: 5 * 60_000,
   });
 }
 

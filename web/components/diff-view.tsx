@@ -2,12 +2,11 @@
 
 // Annotated unified-diff renderer (wireframe-v3 screens 1–2). Risk-typed
 // gutter bars where triage annotations overlap; click opens the annotation
-// popover (note, coverage-or-gap, Draft eval); after a review, verdict chips
+// popover (note and coverage-or-gap); after a review, verdict chips
 // land on the same lines. Diff add/del tints are the one approved exception
 // to the red/green rule.
 
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { DiffFile, DiffLine } from "@/lib/diff";
 import type { Annotation } from "@/lib/types";
@@ -116,12 +115,10 @@ function annotationFor(
 
 export function AnnotationPopover({
   annotation,
-  onDraftEval,
   onClose,
   style,
 }: {
   annotation: Annotation;
-  onDraftEval?: (a: Annotation) => void;
   onClose: () => void;
   style?: React.CSSProperties;
 }) {
@@ -161,14 +158,6 @@ export function AnnotationPopover({
           ))
         )}
       </div>
-      {gap && onDraftEval && (
-        <div className="mt-2.5 flex items-center justify-between border-t border-border-soft pt-2">
-          <span className="text-[12px] text-faint">asks the session agent</span>
-          <Button size="xs" variant="outline" onClick={() => onDraftEval(annotation)}>
-            Draft eval
-          </Button>
-        </div>
-      )}
     </div>
   );
 }
@@ -177,12 +166,10 @@ export function DiffView({
   file,
   annotations,
   chips = [],
-  onDraftEval,
 }: {
   file: DiffFile;
   annotations: Annotation[];
   chips?: VerdictChip[];
-  onDraftEval?: (a: Annotation) => void;
 }) {
   const [open, setOpen] = useState<{ id: string; top: number } | null>(null);
   const openAnnotation = open
@@ -282,7 +269,6 @@ export function DiffView({
       {openAnnotation && (
         <AnnotationPopover
           annotation={openAnnotation}
-          onDraftEval={onDraftEval}
           onClose={() => setOpen(null)}
           style={{ right: 8, top: Math.max(28, (open?.top ?? 0) - 20) }}
         />

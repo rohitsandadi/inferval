@@ -13,6 +13,8 @@ import {
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
+import Link from "next/link";
+import { ListChecks } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -24,7 +26,6 @@ import {
   type VerdictChip,
 } from "@/components/diff-view";
 import { SessionPane } from "@/components/session-pane";
-import { NewEvalDialog, type EvalPrefill } from "@/components/new-eval-dialog";
 import { useRepoShell } from "@/components/repo-shell";
 import {
   fetchPrDiffFromGitHub,
@@ -134,7 +135,6 @@ export default function SessionPage({
     !cachedDiff.isPending &&
     !(cachedDiff.data === null && Boolean(detail?.pr) && githubDiff.isPending);
   const [activeFile, setActiveFile] = useState<string | null>(null);
-  const [evalDialog, setEvalDialog] = useState<EvalPrefill | null>(null);
 
   useEffect(() => {
     if (events.length === 0) return;
@@ -340,17 +340,6 @@ export default function SessionPage({
 
   const draftByOrigin = new Map(drafts.map((d) => [d.origin, d]));
 
-  const openDraftDialog = (a: Annotation) => {
-    const d = draftByOrigin.get(a.id);
-    setEvalDialog({
-      name: d?.name,
-      cmd: d?.cmd,
-      checks: d?.checks,
-      est_gpu_seconds: d?.est_gpu_seconds,
-      provenance: `Prefilled from gap ${a.id}${pr ? ` · PR #${pr.number}` : ""} · session ${id}`,
-    });
-  };
-
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       {/* PR header band */}
@@ -402,6 +391,56 @@ export default function SessionPage({
             <span className="max-w-[46ch] truncate pl-2 text-[13px] italic text-muted-foreground">
               “{pr.body}”
             </span>
+          )}
+        </div>
+        <div className="mt-2 flex flex-wrap items-center gap-3 border-t border-border-soft pt-3">
+          <div className="mr-auto flex min-w-0 items-center gap-2.5">
+            <ListChecks className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+            <div className="min-w-0">
+              <p className="text-xs font-semibold">
+                Reviews for {pr ? `PR #${pr.number}` : "this branch"}
+              </p>
+              <p className="text-[11px] text-faint">
+                Review runs submitted from this attached session
+              </p>
+            </div>
+          </div>
+          {reviewRunIds.length === 0 ? (
+            <span className="rounded-lg border border-dashed border-border px-3 py-1.5 text-xs text-muted-foreground">
+              No affiliated reviews yet
+            </span>
+          ) : (
+            reviewRunIds.map((run) => {
+              const linked = linkedRuns[run];
+              const reviewState =
+                linked?.status !== "done"
+                  ? "busy"
+                  : linked.verdict === "pass"
+                    ? "ok"
+                    : linked?.verdict
+                      ? "bad"
+                      : "idle";
+              const reviewLabel =
+                linked?.status !== "done"
+                  ? (linked?.status ?? "Loading")
+                  : linked.verdict === "pass"
+                    ? "Pass"
+                    : linked?.verdict === "regression"
+                      ? "Regression"
+                      : linked?.verdict === "invalid"
+                        ? "Invalid"
+                        : "Unverified";
+              return (
+                <Link
+                  key={run}
+                  href={`/repo/${owner}/${name}/reviews/${run}`}
+                  className="inline-flex items-center gap-2.5 rounded-lg border border-border bg-card px-3 py-1.5 transition-colors hover:bg-muted"
+                >
+                  <span className="font-mono text-[11px] text-foreground">{run}</span>
+                  <StatusDot state={reviewState} label={reviewLabel} className="text-xs" />
+                </Link>
+              );
+            })
           )}
         </div>
       </div>
@@ -463,7 +502,6 @@ export default function SessionPage({
               file={file}
               annotations={annotations}
               chips={chips}
-              onDraftEval={openDraftDialog}
             />
           ) : (
             <p className="py-8 text-center text-xs text-faint">
@@ -603,15 +641,6 @@ export default function SessionPage({
         </div>
       </div>
 
-      {repo && (
-        <NewEvalDialog
-          repo={repo}
-          open={evalDialog !== null}
-          onOpenChange={(o) => !o && setEvalDialog(null)}
-          onCreate={() => setEvalDialog(null)}
-          prefill={evalDialog}
-        />
-      )}
     </div>
   );
 }

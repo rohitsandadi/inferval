@@ -1,12 +1,12 @@
 "use client";
 
 // Review detail (wireframe screens 8–11): header facts + lifecycle chain,
-// then Verdict / Proposals / Trace / Report tabs. Event polling and replay
-// are unchanged from the pre-tabs page.
+// then Verdict / Proposals / Trace / Report tabs.
 
-import { use, useEffect, useMemo, useRef, useState } from "react";
+import { use, useEffect, useMemo } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Collapsible,
   CollapsibleContent,
@@ -26,7 +26,6 @@ import { RunPipeline } from "@/components/run-pipeline";
 import { StatusDot, verdictDot } from "@/components/status-dot";
 import { Trace } from "@/components/trace";
 import { useRepoShell } from "@/components/repo-shell";
-import { isMock } from "@/lib/api";
 import {
   useEventsQuery,
   useReportQuery,
@@ -39,7 +38,6 @@ import type {
   Investigation,
 } from "@/lib/types";
 
-const REPLAY_MS = 450;
 const GPU_USD_PER_S = 1.1 / 3600; // A10G on-demand ballpark; display only
 
 function deriveProposals(
@@ -91,43 +89,14 @@ export default function ReviewPage({
   const detail = detailData ?? null;
   const events = eventsData;
   const report = reportData ?? null;
-  const [visibleCount, setVisibleCount] = useState<number | null>(null); // null = all
-  const [replaying, setReplaying] = useState(false);
-  const replayTimer = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  // replay: reveal the feed one event at a time, as if live
-  const startReplay = () => {
-    if (replayTimer.current) clearInterval(replayTimer.current);
-    setReplaying(true);
-    setVisibleCount(0);
-    replayTimer.current = setInterval(() => {
-      setVisibleCount((n) => {
-        const next = (n ?? 0) + 1;
-        if (next >= events.length) {
-          if (replayTimer.current) clearInterval(replayTimer.current);
-          setReplaying(false);
-          return null;
-        }
-        return next;
-      });
-    }, REPLAY_MS);
-  };
-  useEffect(
-    () => () => {
-      if (replayTimer.current) clearInterval(replayTimer.current);
-    },
-    [],
-  );
-
-  const visible = visibleCount === null ? events : events.slice(0, visibleCount);
-  const status = useMemo(() => statusFromEvents(visible), [visible]);
+  const status = useMemo(() => statusFromEvents(events), [events]);
   const verdictVisible =
-    detail?.verdict != null && visible.some((e) => e.kind === "verdict");
+    detail?.verdict != null && events.some((e) => e.kind === "verdict");
   const reportVisible =
-    report != null && visible.some((e) => e.kind === "report_ready");
+    report != null && events.some((e) => e.kind === "report_ready");
   const proposals = useMemo(
-    () => deriveProposals(visible, report?.investigation, reportVisible),
-    [visible, report, reportVisible],
+    () => deriveProposals(events, report?.investigation, reportVisible),
+    [events, report, reportVisible],
   );
 
   const spec = detail?.spec;
@@ -183,7 +152,48 @@ export default function ReviewPage({
   }, [setTopbarRight, done, cost, status]);
 
   if (detail === null) {
-    return <p className="text-xs text-faint">loading…</p>;
+    return (
+      <div className="space-y-5" aria-label="Loading review">
+        <div className="flex items-center gap-3">
+          <Skeleton className="h-5 w-24" />
+          <Skeleton className="h-5 w-44" />
+          <Skeleton className="h-6 w-20 rounded-full" />
+          <Skeleton className="ml-auto h-4 w-48" />
+        </div>
+
+        <div className="rounded-xl border border-border-soft bg-card px-5 py-4">
+          <div className="mb-5 flex items-center justify-between gap-4">
+            <div className="space-y-2">
+              <Skeleton className="h-5 w-32" />
+              <Skeleton className="h-4 w-44" />
+            </div>
+            <Skeleton className="h-7 w-24 rounded-full" />
+          </div>
+          <div className="relative grid grid-cols-7 px-2 pt-1">
+            <div className="absolute top-5 right-[7.15%] left-[7.15%] h-px bg-border-soft" />
+            {[0, 1, 2, 3, 4, 5, 6].map((stage) => (
+              <div key={stage} className="relative flex flex-col items-center gap-2">
+                <Skeleton className="size-9 rounded-full" />
+                <Skeleton className="h-3 w-16" />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="flex gap-2">
+          {[0, 1, 2, 3].map((tab) => (
+            <Skeleton key={tab} className="h-10 w-24" />
+          ))}
+        </div>
+        <div className="grid grid-cols-[minmax(0,1fr)_320px] gap-5 max-md:grid-cols-1">
+          <Skeleton className="h-72 w-full rounded-xl" />
+          <div className="space-y-3">
+            <Skeleton className="h-28 w-full rounded-xl" />
+            <Skeleton className="h-36 w-full rounded-xl" />
+          </div>
+        </div>
+      </div>
+    );
   }
 
   const verdict = detail.verdict;
@@ -195,9 +205,9 @@ export default function ReviewPage({
 
   // one band: id · change · verdict · hardware · wall · lifecycle
   const wallS =
-    visible.length >= 2
-      ? (new Date(visible[visible.length - 1].t).getTime() -
-          new Date(visible[0].t).getTime()) /
+    events.length >= 2
+      ? (new Date(events[events.length - 1].t).getTime() -
+          new Date(events[0].t).getTime()) /
         1000
       : null;
   const gpuSeconds = cost !== null ? Math.round(cost / GPU_USD_PER_S) : null;
@@ -217,16 +227,6 @@ export default function ReviewPage({
             {wallS !== null ? ` · wall ${fmtClock(wallS)}` : ""}
             {gpuSeconds !== null ? ` · ${gpuSeconds} GPU-s` : ""}
           </span>
-          {isMock && events.length > 0 && (
-            <Button
-              size="xs"
-              variant="outline"
-              onClick={startReplay}
-              disabled={replaying}
-            >
-              {replaying ? "Replaying…" : "Replay as live"}
-            </Button>
-          )}
         </span>
       </div>
 
@@ -337,7 +337,7 @@ export default function ReviewPage({
         </TabsContent>
 
         <TabsContent value="trace" className="pt-2">
-          <Trace events={visible} />
+          <Trace events={events} />
         </TabsContent>
 
         <TabsContent value="report" className="pt-3">
