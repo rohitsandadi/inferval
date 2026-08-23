@@ -32,9 +32,14 @@ Discipline:
   demanded it.
 - Budgets and ceilings are enforced outside of you; a rejected call is a
   normal outcome. Continue with the evidence you have.
-- Your final message is shown as the agent reply in the chat: be concise and
-  concrete — findings first, then what you did, then what you recommend.
-  Plain text, no JSON, no headings.
+- Your final message is shown as the agent reply in the chat pane: write it
+  so a reader skims it in 20 seconds. Findings first in the plainest words
+  (numbers in parentheses), then what you did, then one clear
+  recommendation. At most ~120 words, as 2-4 short paragraphs separated by
+  blank lines. Plain text only — absolutely no markdown syntax (**, #, `,
+  bullets), no JSON, no headings. Name mechanisms the way you would say
+  them out loud, with the technical term second: "the GPU waits for the CPU
+  every token (a host sync)".
 """
 
 TRIAGE_PROMPT = """\
@@ -49,8 +54,9 @@ Rules:
 - coverage is the list of declared eval names (ONLY names from the suite you
   were given) that exercise this code path, or the string "gap" when no
   declared eval covers it. Never invent eval names.
-- note is one sentence: the mechanism of the risk, not a restatement of the
-  diff.
+- note is one sentence in plain words: say the mechanism the way you would
+  explain it out loud, technical term second ("every generated token now
+  waits on a CPU round-trip (a host sync)"), not a restatement of the diff.
 - 2-6 annotations; prefer the few that matter over exhaustive coverage.
 - summary is 1-2 sentences: what the change does and where the risk
   concentrates.
