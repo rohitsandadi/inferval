@@ -91,17 +91,11 @@ export function RunPipeline({ status }: { status: RunStatus }) {
                   className="flex flex-col items-center px-1 text-center"
                 >
                   <span className="relative grid size-10 place-items-center">
-                    {active && !done ? (
-                      <span
-                        className="absolute inset-0 animate-ping rounded-full border border-live/45 [animation-duration:1.8s]"
-                        aria-hidden
-                      />
-                    ) : null}
                     <span
                       className={cn(
                         "relative grid size-9 place-items-center rounded-full border bg-card transition-colors duration-300",
                         complete && "border-foreground bg-foreground text-background",
-                        active && !done && "border-live text-live shadow-[0_0_0_4px_rgb(106_175_255/0.1)]",
+                        active && !done && "border-live bg-live text-background",
                         active && done && "border-ok bg-ok text-background",
                         upcoming && "border-border text-faint",
                       )}
