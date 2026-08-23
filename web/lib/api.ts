@@ -17,14 +17,13 @@ import type {
   Telemetry,
 } from "@/lib/types";
 
-const API = process.env.NEXT_PUBLIC_INFERVAL_API;
+const DEFAULT_API = "https://atlas-verification--atlas-api.modal.run";
+const API = (process.env.NEXT_PUBLIC_INFERVAL_API || DEFAULT_API).replace(
+  /\/$/,
+  "",
+);
 
 function apiUrl(path: string): string {
-  if (!API) {
-    throw new Error(
-      "NEXT_PUBLIC_INFERVAL_API is required to load frontend data.",
-    );
-  }
   return `${API}${path}`;
 }
 
@@ -114,8 +113,7 @@ export async function decideProposal(
   );
 }
 
-export function artifactUrl(runId: string, path: string): string | null {
-  if (!API) return null;
+export function artifactUrl(runId: string, path: string): string {
   return `${API}/api/runs/${encodeURIComponent(runId)}/artifact?path=${encodeURIComponent(path)}`;
 }
 
@@ -228,8 +226,8 @@ export async function githubStatus(): Promise<GithubStatus> {
   }
 }
 
-export function githubLoginUrl(): string | null {
-  return API ? `${API}/api/auth/github/login` : null;
+export function githubLoginUrl(): string {
+  return `${API}/api/auth/github/login`;
 }
 
 export async function githubRepos(): Promise<GithubRepo[]> {
