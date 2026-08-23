@@ -42,6 +42,10 @@ class ToolContext:
     max_experiments: int = 3
     gpu_seconds_budget: float = 240.0
     approval_timeout_s: float = 1800.0
+    # Absolute time.monotonic() deadline (the run's wall clock minus a
+    # wrap-up margin). When set it overrides approval_timeout_s: a manual
+    # proposal stays approvable for the run's whole remaining life.
+    approval_deadline: float | None = None
     poll_interval_s: float = 2.0
     # ledger — mutated as probes execute
     gpu_seconds_used: float = 0.0
@@ -141,7 +145,8 @@ def _budget_reject_reason(ctx: ToolContext, est: float) -> str | None:
 
 def _wait_approval(ctx: ToolContext, pid: str) -> str:
     key = f"{ctx.run_id}:{pid}"
-    deadline = time.monotonic() + ctx.approval_timeout_s
+    deadline = (ctx.approval_deadline if ctx.approval_deadline is not None
+                else time.monotonic() + ctx.approval_timeout_s)
     while time.monotonic() < deadline:
         decision = ctx.approval_lookup(key)
         if decision in ("approved", "denied"):

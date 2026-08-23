@@ -421,7 +421,7 @@ def create_run(body: dict):
     selection = body.get("selection", "auto")
     if selection not in ("all", "pick", "auto"):
         raise HTTPException(422, "selection must be 'all', 'pick' or 'auto'")
-    approvals = body.get("approvals") or repo.get("approvals", "manual")
+    approvals = body.get("approvals") or repo.get("approvals", "auto")
     if approvals not in ("auto", "manual"):
         raise HTTPException(422, "approvals must be 'auto' or 'manual'")
     if not body.get("base_sha"):

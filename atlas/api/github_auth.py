@@ -194,7 +194,7 @@ def connect_repo(body: dict):
     entry = {"name": name, "url": f"https://github.com/{name}",
              "description": "", "gpu": "A10G", "image": "atlas-torch-2.8.0",
              "correctness": "token_ids_match", "overrides": [],
-             "approvals": "manual", "default_branch": default_branch,
+             "approvals": "auto", "default_branch": default_branch,
              "evals": [], "branches": []}
     runs_root = os.environ.get(ENV_RUNS_ROOT, "/runs")
     root = os.path.join(runs_root, "repos.d")

@@ -174,7 +174,7 @@ def test_post_run_composes_spec_and_spawns(client, monkeypatch):
     assert spec["evals"][0]["checks"]["tokens_per_s"] == "-10%"
     assert spec["gpu"] == "A10G" and spec["image"] == "atlas-torch-2.8.0"
     assert spec["claim"] == "2x faster"
-    assert spec["approvals"] == "manual"  # repo default from repos.json
+    assert spec["approvals"] == "auto"  # repo default from repos.json
     assert spec["repo"] == "https://github.com/rohitsandadi/nanoGPT"  # clonable
     assert spec["overrides"] == ["batch"]  # probe whitelist rides along
 

@@ -203,7 +203,16 @@ def probe_overrides(params: dict) -> dict:
     return ov
 
 
-def investigate_or_survive(spec, verdict, sb, volume, emit) -> dict:
+# The deployed function's wall clock (app.py timeout=3600) minus the time a
+# probe + conclusion + report need to finish. Manual proposals stay
+# approvable until this deadline instead of a fixed window, so the run
+# always still reports.
+CONTROLLER_TIMEOUT_S = 3600
+WRAPUP_MARGIN_S = 900
+
+
+def investigate_or_survive(spec, verdict, sb, volume, emit,
+                           approval_deadline=None) -> dict:
     """The Tier-1 survival boundary: ANY investigator exception -> status
     failed + inconclusive diagnosis; the run still completes and reports.
     Wiring per investigator/tools.py: probe_callback(kind, params),
@@ -226,7 +235,8 @@ def investigate_or_survive(spec, verdict, sb, volume, emit) -> dict:
         from atlas.investigator.loop import investigate
         approvals = modal.Dict.from_name(DICT_APPROVALS, create_if_missing=True)
         return investigate(spec["run"], artifacts.runs_root(), spec, verdict,
-                           probe, approvals.get)
+                           probe, approvals.get,
+                           approval_deadline=approval_deadline)
     except Exception as e:
         return failed_investigation(spec["run"], f"{type(e).__name__}: {e}")
 
@@ -241,6 +251,7 @@ def headline(r: dict) -> dict:
 
 
 def run(spec: dict, volume=None) -> dict:
+    t0 = time.monotonic()
     validate_spec(spec)
     run_id = spec["run"]
     d = artifacts.run_dir(run_id)
@@ -294,7 +305,9 @@ def run(spec: dict, volume=None) -> dict:
 
         if needs_investigation(verdict):
             emit("agent", "investigation_started", {"trigger": verdict["verdict"]})
-            investigation = investigate_or_survive(spec, verdict, sb, volume, emit)
+            investigation = investigate_or_survive(
+                spec, verdict, sb, volume, emit,
+                approval_deadline=t0 + CONTROLLER_TIMEOUT_S - WRAPUP_MARGIN_S)
             artifacts.write_json(f"{d}/investigation.json", investigation, volume)
             emit("agent", "investigation_done", {"status": investigation["status"]})
         completed = True  # normal completion -> the sandbox is parkable
