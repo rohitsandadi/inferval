@@ -1,0 +1,657 @@
+<title>Atlas Wireframes</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --ground: #000000; --surface: #0A0A0A;
+    --border: #2E2E2E; --border-soft: #1C1C1C;
+    --text: #EDEDED; --muted: #A1A1A1; --faint: #666666;
+    --blue: #0070F3; --ok: #45C486; --bad: #E5484D; --note: #D9A441;
+    --sans: "Geist", system-ui, -apple-system, sans-serif;
+    --mono: "Geist Mono", ui-monospace, SFMono-Regular, monospace;
+  }
+  * { margin: 0; box-sizing: border-box; }
+  body { background: var(--ground); color: var(--text); font-family: var(--sans); line-height: 1.5; padding: 48px 24px 96px; }
+  .wrap { max-width: 980px; margin: 0 auto; }
+
+  header.page h1 { font-size: 26px; font-weight: 600; letter-spacing: -0.02em; }
+  header.page p { color: var(--muted); max-width: 68ch; margin-top: 8px; font-size: 14px; }
+  header.page p strong { color: var(--text); font-weight: 550; }
+
+  .screen { margin-top: 56px; }
+  .screen-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+  .screen-head .num { font-family: var(--mono); font-size: 12px; color: var(--faint); }
+  .screen-head h2 { font-size: 17px; font-weight: 600; }
+  .screen-head .route { font-family: var(--mono); font-size: 11.5px; color: var(--muted); border: 1px solid var(--border-soft); background: var(--surface); padding: 1px 8px; border-radius: 6px; }
+
+  .frame { border: 1px solid var(--border); border-radius: 8px; background: var(--ground); overflow: hidden; font-size: 12px; }
+  .topbar { display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; border-bottom: 1px solid var(--border-soft); gap: 10px; flex-wrap: wrap; }
+  .wordmark { font-weight: 600; font-size: 13px; }
+  .crumb { font-size: 12px; color: var(--muted); }
+  .crumb b { color: var(--text); font-weight: 500; }
+
+  .btn { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 500; padding: 6px 14px; border-radius: 6px; border: 1px solid var(--border); color: var(--text); background: var(--ground); white-space: nowrap; }
+  .btn.primary { background: #EDEDED; color: #000; border-color: #EDEDED; }
+  .btn.danger { color: var(--bad); border-color: rgba(229,83,75,0.4); }
+  .btn.sm { padding: 3px 10px; font-size: 11px; }
+
+  .status { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+  .status .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--faint); flex-shrink: 0; }
+  .status.ok .dot { background: var(--ok); }
+  .status.bad .dot { background: var(--bad); }
+  .status.busy .dot { background: var(--blue); }
+
+  .badge { font-family: var(--mono); font-size: 10px; padding: 1px 7px; border-radius: 99px; border: 1px solid var(--border); color: var(--muted); background: var(--surface); white-space: nowrap; }
+  .badge.blue { color: #52A8FF; border-color: rgba(0,112,243,0.45); background: rgba(0,112,243,0.10); }
+  .badge.tier { border-radius: 4px; }
+  .badge.tier.agent { color: #52A8FF; border-color: rgba(0,112,243,0.45); }
+  .badge.tier.policy { color: var(--note); border-color: rgba(217,164,65,0.4); }
+
+  .mono { font-family: var(--mono); } .dim { color: var(--muted); } .faint { color: var(--faint); }
+
+  .body-cols { display: flex; min-height: 260px; }
+  .sidebar { width: 150px; border-right: 1px solid var(--border-soft); padding: 12px 10px; display: flex; flex-direction: column; gap: 2px; flex-shrink: 0; }
+  .sidebar .nav { padding: 5px 10px; border-radius: 6px; color: var(--muted); font-size: 12px; }
+  .sidebar .nav.active { background: var(--surface); color: var(--text); border: 1px solid var(--border-soft); }
+  .main { flex: 1; padding: 20px 24px; min-width: 0; }
+  .main-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+
+  .cardgrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; padding: 20px; }
+  .repocard { border: 1px solid var(--border); border-radius: 8px; padding: 14px; display: flex; flex-direction: column; gap: 8px; }
+  .repocard .name { font-size: 12.5px; font-weight: 500; }
+  .repocard .meta { display: flex; gap: 6px; flex-wrap: wrap; }
+  .repocard .foot { display: flex; justify-content: space-between; align-items: center; margin-top: 4px; color: var(--faint); font-size: 11px; }
+  .dots { color: var(--faint); font-weight: 600; letter-spacing: 1px; }
+
+  .statrow { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 14px; }
+  .stat { border: 1px solid var(--border-soft); border-radius: 8px; padding: 10px 12px; }
+  .stat .k { font-size: 11px; color: var(--faint); }
+  .stat .v { margin-top: 4px; font-size: 12.5px; display: flex; align-items: center; gap: 6px; }
+
+  table.wf { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 11.5px; }
+  table.wf th { font-size: 11px; color: var(--faint); text-align: left; font-weight: 400; padding: 6px 10px; border-bottom: 1px solid var(--border-soft); }
+  table.wf td { padding: 9px 10px; border-bottom: 1px solid var(--border-soft); font-variant-numeric: tabular-nums; vertical-align: middle; }
+  table.wf td.mono, table.wf .mono { font-family: var(--mono); font-size: 11px; }
+  table.wf tr:last-child td { border-bottom: 0; }
+  .neg { color: var(--bad); font-family: var(--mono); }
+  .pos { color: var(--ok); font-family: var(--mono); }
+  .right { text-align: right; }
+
+  .card { border: 1px solid var(--border-soft); border-radius: 8px; padding: 12px 14px; margin-top: 14px; }
+  .card .t { font-size: 12px; font-weight: 500; }
+  .card .line { color: var(--faint); font-size: 11.5px; margin-top: 3px; }
+  .card .row { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+
+  .search { display: inline-flex; align-items: center; gap: 7px; border: 1px solid var(--border); border-radius: 6px; padding: 5px 10px; font-size: 11.5px; color: var(--faint); background: var(--ground); min-width: 170px; }
+  .filterbar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--border-soft); margin-top: 14px; }
+  .tab { padding: 6px 12px; font-size: 12px; color: var(--muted); border-bottom: 2px solid transparent; }
+  .tab.active { color: var(--text); border-bottom-color: var(--text); font-weight: 500; }
+
+  .claim { border-left: 2px solid var(--border); padding: 4px 12px; margin-top: 12px; color: var(--muted); font-size: 12px; font-style: italic; }
+
+  .timeline { margin-top: 14px; display: flex; flex-direction: column; }
+  .tl { display: flex; gap: 12px; }
+  .tl .rail { display: flex; flex-direction: column; align-items: center; width: 14px; flex-shrink: 0; }
+  .tl .rail .pt { width: 9px; height: 9px; border-radius: 50%; border: 2px solid var(--faint); background: var(--ground); margin-top: 4px; flex-shrink: 0; }
+  .tl.bad .rail .pt { border-color: var(--bad); }
+  .tl.ok .rail .pt { border-color: var(--ok); }
+  .tl.busy .rail .pt { border-color: var(--blue); }
+  .tl .rail .ln { width: 1px; flex: 1; background: var(--border-soft); }
+  .tl:last-child .rail .ln { display: none; }
+  .tl .body { padding-bottom: 18px; min-width: 0; flex: 1; }
+  .tl .head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 11.5px; }
+  .tl .sub { color: var(--faint); font-size: 11px; margin-top: 2px; }
+
+  .dialog-frame { border: 1px solid var(--border); border-radius: 8px; background: var(--surface); overflow: hidden; padding: 36px 0; display: flex; justify-content: center; }
+  .dialog { width: 400px; max-width: 92%; border: 1px solid var(--border); border-radius: 10px; background: var(--ground); padding: 20px; }
+  .dialog h4 { font-size: 14px; font-weight: 600; }
+  .dialog .sub { font-size: 11.5px; color: var(--faint); margin-top: 2px; }
+  .fgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 16px; }
+  .fgroup { display: flex; flex-direction: column; gap: 5px; }
+  .fgroup.full { grid-column: 1 / -1; }
+  .fgroup label { font-size: 11px; color: var(--muted); font-weight: 500; }
+  .control { display: flex; align-items: center; justify-content: space-between; gap: 8px; border: 1px solid var(--border); border-radius: 6px; padding: 6px 10px; font-size: 11.5px; color: var(--text); background: var(--ground); }
+  .control.mono-v { font-family: var(--mono); font-size: 11px; }
+  .control .chev { color: var(--faint); font-size: 9px; }
+  .control .ph { color: var(--faint); }
+  .switchrow { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border-soft); }
+  .switchrow .l { font-size: 12px; }
+  .switchrow .d { font-size: 11px; color: var(--faint); }
+  .switch { width: 30px; height: 17px; border-radius: 99px; background: var(--ok); position: relative; flex-shrink: 0; }
+  .switch::after { content: ""; position: absolute; right: 2px; top: 2px; width: 13px; height: 13px; border-radius: 50%; background: #000; }
+  .dialog .foot { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
+  .checklist { border: 1px solid var(--border); border-radius: 6px; margin-top: 2px; }
+  .checklist .item { display: flex; align-items: center; justify-content: space-between; padding: 6px 10px; font-family: var(--mono); font-size: 11px; border-bottom: 1px solid var(--border-soft); }
+  .checklist .item:last-child { border-bottom: 0; }
+  .checklist .item .rm { color: var(--faint); font-size: 10px; }
+
+  /* trace rows */
+  .phase { font-size: 10.5px; color: var(--faint); letter-spacing: 0.06em; text-transform: uppercase; margin-top: 14px; }
+  .ev { display: flex; align-items: baseline; gap: 10px; padding: 6px 0 6px 10px; border-left: 1px solid var(--border-soft); margin-left: 4px; font-size: 11.5px; flex-wrap: wrap; }
+  .ev .tm { font-family: var(--mono); font-size: 10px; color: var(--faint); width: 52px; flex-shrink: 0; }
+  .ev .k { font-family: var(--mono); font-size: 11px; }
+  .ev .d { color: var(--muted); }
+  .ev .ref { color: var(--blue); font-size: 10.5px; }
+
+  /* proposal card */
+  .prop { border: 1px solid var(--border); border-radius: 8px; padding: 14px; margin-top: 14px; }
+  .prop .hd { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .prop .reason { color: var(--muted); font-size: 11.5px; margin-top: 8px; max-width: 70ch; }
+  .prop .params { font-family: var(--mono); font-size: 10.5px; color: var(--faint); margin-top: 8px; }
+  .prop .ft { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; gap: 10px; flex-wrap: wrap; }
+
+  .note { margin-top: 10px; font-size: 12.5px; color: var(--muted); }
+  .note strong { color: var(--text); font-weight: 550; }
+
+  .questions { margin-top: 64px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); padding: 20px 24px; }
+  .questions h2 { font-size: 16px; font-weight: 600; }
+  .questions ol { margin: 12px 0 0 18px; padding: 0; display: flex; flex-direction: column; gap: 8px; color: var(--muted); font-size: 14px; }
+  .questions li strong { color: var(--text); }
+
+  .lifecycle { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; margin-top: 10px; }
+  .lifecycle .arrow { color: var(--faint); font-size: 10px; }
+  @media (max-width: 720px) {
+    .cardgrid, .statrow { grid-template-columns: 1fr; }
+    .body-cols { flex-direction: column; }
+    .sidebar { width: 100%; flex-direction: row; flex-wrap: wrap; border-right: 0; border-bottom: 1px solid var(--border-soft); }
+    .fgrid { grid-template-columns: 1fr; }
+  }
+</style>
+
+<div class="wrap">
+<header class="page">
+  <h1>Atlas Wireframes</h1>
+  <p>Rev 5. Git-centric IA: <strong>a branch/PR is the unit of verification</strong>; reviews are
+  its evidence. Vercel/shadcn system — true black, dots for status, tables, dialogs.
+  Numbers are real (run <span class="mono">hero_1787471941</span>).</p>
+</header>
+
+<!-- 1 HOME -->
+<section class="screen">
+  <div class="screen-head"><span class="num">1</span><h2>Home</h2><span class="route">/</span></div>
+  <div class="frame">
+    <div class="topbar">
+      <span class="wordmark">Atlas</span>
+      <span style="display:flex; gap:8px; align-items:center;">
+        <span class="search">⌕&nbsp; Search repos…</span>
+        <span class="btn primary">Connect repo</span>
+      </span>
+    </div>
+    <div class="cardgrid">
+      <div class="repocard">
+        <span style="display:flex; justify-content:space-between; align-items:center;"><span class="name">rohitsandadi/nanoGPT</span><span class="dots">⋯</span></span>
+        <div class="meta"><span class="badge">A10G</span><span class="badge">2 evals</span><span class="badge">3 branches</span></div>
+        <div class="foot"><span class="status bad"><i class="dot"></i>1 regression open</span><span>6 reviews</span></div>
+      </div>
+      <div class="repocard">
+        <span style="display:flex; justify-content:space-between; align-items:center;"><span class="name">acme/whisper-stream</span><span class="dots">⋯</span></span>
+        <div class="meta"><span class="badge">A10G</span><span class="badge">3 evals</span><span class="badge">1 branch</span></div>
+        <div class="foot"><span class="status ok"><i class="dot"></i>All verified</span><span>12 reviews</span></div>
+      </div>
+      <div class="repocard">
+        <span style="display:flex; justify-content:space-between; align-items:center;"><span class="name">acme/sdxl-turbo-api</span><span class="dots">⋯</span></span>
+        <div class="meta"><span class="badge">A100</span><span class="badge">4 evals</span></div>
+        <div class="foot"><span class="faint">no reviews yet</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 2 OVERVIEW -->
+<section class="screen">
+  <div class="screen-head"><span class="num">2</span><h2>Repo overview</h2><span class="route">/repo/rohitsandadi/nanoGPT</span></div>
+  <div class="frame">
+    <div class="topbar">
+      <span class="crumb"><span class="wordmark">Atlas</span> &nbsp;/&nbsp; <b>rohitsandadi/nanoGPT</b></span>
+      <span class="btn primary">New review</span>
+    </div>
+    <div class="body-cols">
+      <div class="sidebar">
+        <span class="nav active">Overview</span>
+        <span class="nav">Branches &amp; PRs</span>
+        <span class="nav">Reviews</span>
+        <span class="nav">Evals</span>
+      </div>
+      <div class="main">
+        <div class="mono faint" style="font-size: 11px;">base: master @ 3adf61e1 · atlas-torch-2.8.0</div>
+        <div class="statrow">
+          <div class="stat"><div class="k">Open changes</div><div class="v">3 branches · 2 PRs</div></div>
+          <div class="stat"><div class="k">Needs attention</div><div class="v"><span class="status bad"><i class="dot"></i>1 regression</span></div></div>
+          <div class="stat"><div class="k">Suite</div><div class="v">2 evals</div></div>
+          <div class="stat"><div class="k">Total spend</div><div class="v mono">$0.85</div></div>
+        </div>
+        <table class="wf">
+          <tr><th>Change</th><th>Claim</th><th>State vs master</th><th>Last review</th></tr>
+          <tr><td class="mono">opt-sampling <span class="badge blue">PR #4</span></td><td class="dim" style="font-style:italic;">"~2x faster generation…"</td><td><span class="status bad"><i class="dot"></i>Regression -33.9%</span></td><td class="mono faint">2m ago</td></tr>
+          <tr><td class="mono">opt-allocation <span class="badge blue">PR #5</span></td><td class="dim" style="font-style:italic;">"minor speedup from inference mode"</td><td><span class="status ok"><i class="dot"></i>Verified +3.5%</span></td><td class="mono faint">1h ago</td></tr>
+          <tr><td class="mono">fix-sampling</td><td class="faint">—</td><td><span class="status busy"><i class="dot"></i>Measuring</span></td><td class="mono faint">now</td></tr>
+        </table>
+        <div class="card">
+          <div class="row">
+            <div>
+              <div class="t">Connect your coding agent</div>
+              <div class="line">The agent submits its branch for review before opening a PR.</div>
+            </div>
+            <span class="btn sm">Copy prompt</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 3 BRANCHES -->
+<section class="screen">
+  <div class="screen-head"><span class="num">3</span><h2>Branches &amp; PRs</h2><span class="route">/repo/rohitsandadi/nanoGPT/branches</span></div>
+  <div class="frame">
+    <div class="topbar">
+      <span class="crumb"><span class="wordmark">Atlas</span> &nbsp;/&nbsp; <b>rohitsandadi/nanoGPT</b></span>
+      <span class="btn primary">New review</span>
+    </div>
+    <div class="body-cols">
+      <div class="sidebar">
+        <span class="nav">Overview</span>
+        <span class="nav active">Branches &amp; PRs</span>
+        <span class="nav">Reviews</span>
+        <span class="nav">Evals</span>
+      </div>
+      <div class="main">
+        <div class="filterbar">
+          <span class="control" style="min-width:150px;">Base: master <span class="chev">▾</span></span>
+          <span class="search">⌕&nbsp; Search branches…</span>
+        </div>
+        <table class="wf">
+          <tr><th>Branch</th><th>Claim</th><th>vs master</th><th>Reviews</th><th></th></tr>
+          <tr>
+            <td class="mono">opt-sampling <span class="badge blue">PR #4</span></td>
+            <td class="dim" style="font-style:italic;">"~2x faster generation via host-side sampling"</td>
+            <td><span class="status bad"><i class="dot"></i>Regression -33.9%</span></td>
+            <td class="mono">2</td>
+            <td class="right"><span class="btn sm">Review</span></td>
+          </tr>
+          <tr>
+            <td class="mono">opt-allocation <span class="badge blue">PR #5</span></td>
+            <td class="dim" style="font-style:italic;">"minor speedup from inference-mode tensors"</td>
+            <td><span class="status ok"><i class="dot"></i>Verified +3.5%</span></td>
+            <td class="mono">1</td>
+            <td class="right"><span class="btn sm">Review</span></td>
+          </tr>
+          <tr>
+            <td class="mono">fix-sampling</td>
+            <td class="faint">—</td>
+            <td><span class="status busy"><i class="dot"></i>Measuring</span></td>
+            <td class="mono">1</td>
+            <td class="right"><span class="btn sm">Review</span></td>
+          </tr>
+          <tr>
+            <td class="mono">experiment/kv-cache</td>
+            <td class="faint">—</td>
+            <td><span class="status"><i class="dot"></i>Unverified</span></td>
+            <td class="mono">0</td>
+            <td class="right"><span class="btn sm">Review</span></td>
+          </tr>
+        </table>
+      </div>
+    </div>
+  </div>
+  <p class="note">Every state is relative to the <strong>base selector</strong>. Unverified branches get their first review from the row button.</p>
+</section>
+
+<!-- 4 BRANCH DETAIL -->
+<section class="screen">
+  <div class="screen-head"><span class="num">4</span><h2>Branch detail</h2><span class="route">/repo/rohitsandadi/nanoGPT/branches/opt-sampling</span></div>
+  <div class="frame">
+    <div class="topbar">
+      <span class="crumb"><span class="wordmark">Atlas</span> &nbsp;/&nbsp; <b>rohitsandadi/nanoGPT</b> &nbsp;/&nbsp; <span class="mono">opt-sampling</span></span>
+      <span class="btn primary">Review this branch</span>
+    </div>
+    <div class="body-cols">
+      <div class="sidebar">
+        <span class="nav">Overview</span>
+        <span class="nav active">Branches &amp; PRs</span>
+        <span class="nav">Reviews</span>
+        <span class="nav">Evals</span>
+      </div>
+      <div class="main">
+        <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+          <span class="mono" style="font-size:13px;">opt-sampling</span>
+          <span class="badge blue">PR #4</span>
+          <span class="status bad"><i class="dot"></i>Regression</span>
+          <span class="mono faint" style="font-size:11px;">9c2b11d0 · vs master @ 3adf61e1</span>
+        </div>
+        <div class="claim">"Optimize generation: host-side sampling with pinned staging (~2x faster generation). Outputs are bit-identical."</div>
+        <div class="timeline">
+          <div class="tl busy">
+            <div class="rail"><span class="pt"></span><span class="ln"></span></div>
+            <div class="body">
+              <div class="head"><span class="mono">r_c81d09</span><span class="status busy"><i class="dot"></i>Investigating</span><span class="mono faint">fix commit a41f2e8</span></div>
+              <div class="sub">re-verify after fix · started 2m ago</div>
+            </div>
+          </div>
+          <div class="tl bad">
+            <div class="rail"><span class="pt"></span><span class="ln"></span></div>
+            <div class="body">
+              <div class="head"><span class="mono">hero_1787471941</span><span class="status bad"><i class="dot"></i>Regression</span><span class="neg">-33.9% tokens/s</span><span class="mono faint">$0.25</span></div>
+              <div class="sub">diagnosis: fixed per-token host cost in generate() sampling · claim not true by measurement</div>
+            </div>
+          </div>
+          <div class="tl">
+            <div class="rail"><span class="pt"></span><span class="ln"></span></div>
+            <div class="body">
+              <div class="head"><span class="dim">PR #4 opened with claim</span><span class="mono faint">9c2b11d0</span></div>
+              <div class="sub">agent-authored change · 3h ago</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <p class="note">The fix arc — claim → red review → fix commit → green re-verify — lives here, newest on top.</p>
+</section>
+
+<!-- 5 NEW REVIEW DIALOG -->
+<section class="screen">
+  <div class="screen-head"><span class="num">5</span><h2>New review</h2><span class="route">dialog — any New review / Review button</span></div>
+  <div class="dialog-frame">
+    <div class="dialog">
+      <h4>New review</h4>
+      <div class="sub">Paired measurement on one A10G. Verdict comes from the suite's thresholds.</div>
+      <div class="fgrid">
+        <div class="fgroup"><label>Mode</label><div class="control">Compare <span class="chev">▾</span></div></div>
+        <div class="fgroup"><label>Evals</label><div class="control">Auto <span class="chev">▾</span></div></div>
+        <div class="fgroup"><label>Base</label><div class="control mono-v">master <span class="chev">▾</span></div></div>
+        <div class="fgroup"><label>Head</label><div class="control mono-v">opt-sampling <span class="chev">▾</span></div></div>
+        <div class="fgroup full"><label>Claim</label><div class="control">"~2x faster generation via host-side sampling" <span class="chev" style="font-size:10px;">from PR #4</span></div></div>
+      </div>
+      <div class="switchrow">
+        <div>
+          <div class="l">Auto-approve probes</div>
+          <div class="d">Follow-up experiments run without waiting for approval</div>
+        </div>
+        <span class="switch"></span>
+      </div>
+      <div class="foot"><span class="btn">Cancel</span><span class="btn primary">Start review</span></div>
+    </div>
+  </div>
+  <p class="note">Base/Head are branch <strong>Selects</strong> (last option: "enter a SHA…"). Claim auto-fills from the PR body, editable.</p>
+</section>
+
+<!-- 6 NEW EVAL DIALOG -->
+<section class="screen">
+  <div class="screen-head"><span class="num">6</span><h2>New eval</h2><span class="route">dialog — from the Evals page</span></div>
+  <div class="dialog-frame">
+    <div class="dialog">
+      <h4>New eval</h4>
+      <div class="sub">A named scenario plus the thresholds it must hold.</div>
+      <div class="fgrid">
+        <div class="fgroup"><label>Name</label><div class="control mono-v"><span class="ph">generate_batch8</span></div></div>
+        <div class="fgroup"><label>GPU</label><div class="control">A10G <span class="chev">▾</span></div></div>
+        <div class="fgroup full"><label>Command</label><div class="control mono-v"><span class="ph">bench.py --eval generate_batch8 --tokens 128 --batch 8 --out {out}</span></div></div>
+        <div class="fgroup full">
+          <label>Checks</label>
+          <div class="checklist">
+            <div class="item"><span>tokens_per_s&nbsp; ≥ -10%</span><span class="rm">remove</span></div>
+            <div class="item"><span>latency_ms_p95&nbsp; ≤ +15%</span><span class="rm">remove</span></div>
+            <div class="item"><span class="faint">+ Add check&nbsp; (metric ▾ · threshold)</span></div>
+          </div>
+        </div>
+        <div class="fgroup full"><label>Absolute limit (optional)</label><div class="control mono-v"><span class="ph">latency_ms_p95 &lt; 3000</span></div></div>
+      </div>
+      <div class="foot"><span class="btn">Cancel</span><span class="btn primary">Create eval</span></div>
+    </div>
+  </div>
+  <p class="note">Same shape as New review. Checks mirror their atlas.yaml form: metric Select + threshold Input, add/remove rows.</p>
+</section>
+
+<!-- 7 REVIEWS LOG -->
+<section class="screen">
+  <div class="screen-head"><span class="num">7</span><h2>Reviews — full log</h2><span class="route">/repo/rohitsandadi/nanoGPT/reviews</span></div>
+  <div class="frame">
+    <div class="topbar">
+      <span class="crumb"><span class="wordmark">Atlas</span> &nbsp;/&nbsp; <b>rohitsandadi/nanoGPT</b></span>
+      <span class="btn primary">New review</span>
+    </div>
+    <div class="body-cols">
+      <div class="sidebar">
+        <span class="nav">Overview</span>
+        <span class="nav">Branches &amp; PRs</span>
+        <span class="nav active">Reviews</span>
+        <span class="nav">Evals</span>
+      </div>
+      <div class="main">
+        <div class="filterbar">
+          <span class="search">⌕&nbsp; Search reviews…</span>
+          <span class="control" style="min-width:110px;">All branches <span class="chev">▾</span></span>
+          <span class="control" style="min-width:110px;">All verdicts <span class="chev">▾</span></span>
+        </div>
+        <table class="wf">
+          <tr><th>Review</th><th>Change</th><th>Verdict</th><th>tokens/s Δ</th><th>p95 Δ</th><th>Cost</th><th>Status</th><th></th></tr>
+          <tr><td class="mono">r_c81d09</td><td class="mono dim">fix-sampling → master</td><td class="faint">—</td><td class="faint">—</td><td class="faint">—</td><td class="faint">—</td><td><span class="status busy"><i class="dot"></i>Investigating</span></td><td class="faint right">now</td></tr>
+          <tr><td class="mono">hero_1787…</td><td class="mono dim">opt-sampling → master</td><td><span class="status bad"><i class="dot"></i>Regression</span></td><td class="neg">-33.9%</td><td class="neg">+52.1%</td><td class="mono">$0.25</td><td><span class="status"><i class="dot"></i>Done</span></td><td class="faint right">2m</td></tr>
+          <tr><td class="mono">r_9a41c2</td><td class="mono dim">opt-allocation → master</td><td><span class="status ok"><i class="dot"></i>Pass</span></td><td class="pos">+3.5%</td><td class="pos">-2.1%</td><td class="mono">$0.11</td><td><span class="status"><i class="dot"></i>Done</span></td><td class="faint right">1h</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 8 REVIEW: VERDICT -->
+<section class="screen">
+  <div class="screen-head"><span class="num">8</span><h2>Review — Verdict tab</h2><span class="route">/repo/rohitsandadi/nanoGPT/reviews/hero_1787471941</span></div>
+  <div class="frame">
+    <div class="topbar">
+      <span class="crumb"><span class="wordmark">Atlas</span> &nbsp;/&nbsp; <b>rohitsandadi/nanoGPT</b> &nbsp;/&nbsp; <span class="mono">opt-sampling</span> &nbsp;/&nbsp; <span class="mono">hero_1787471941</span></span>
+      <span class="mono faint" style="font-size:11px;">$0.25</span>
+    </div>
+    <div class="body-cols">
+      <div class="sidebar">
+        <span class="nav">Overview</span>
+        <span class="nav active">Branches &amp; PRs</span>
+        <span class="nav">Reviews</span>
+        <span class="nav">Evals</span>
+      </div>
+      <div class="main">
+        <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+          <span class="mono" style="font-size:13px;">hero_1787471941</span>
+          <span class="mono dim" style="font-size:11px;">opt-sampling → master</span>
+          <span class="status bad"><i class="dot"></i>Regression</span>
+        </div>
+        <div class="lifecycle">
+          <span class="badge">queued</span><span class="arrow">→</span><span class="badge">measuring</span><span class="arrow">→</span><span class="badge">verdict</span><span class="arrow">→</span><span class="badge">investigating</span><span class="arrow">→</span><span class="badge blue">done</span>
+        </div>
+        <div class="tabs">
+          <span class="tab active">Verdict</span><span class="tab">Proposals</span><span class="tab">Trace</span><span class="tab">Report</span>
+        </div>
+        <div style="padding: 12px 2px;">
+          <div class="claim" style="margin-top: 4px;">"~2x faster generation via host-side sampling" — <span class="neg" style="font-style: normal;">not true by measurement</span></div>
+          <table class="wf" style="margin-top:10px;">
+            <tr><th>Eval</th><th>Metric</th><th>Base</th><th>Candidate</th><th>Δ</th><th>Threshold</th></tr>
+            <tr><td class="mono">generate_short</td><td>tokens/s</td><td class="mono">392.5</td><td class="mono">259.6</td><td class="neg">-33.9%</td><td class="mono faint">-10%</td></tr>
+            <tr><td class="mono">generate_short</td><td>p95 latency</td><td class="mono">654.8</td><td class="mono">995.8</td><td class="neg">+52.1%</td><td class="mono faint">+15%</td></tr>
+            <tr><td class="mono">generate_short</td><td>peak VRAM</td><td class="mono">519.5</td><td class="mono">519.5</td><td class="mono">0.0%</td><td class="mono faint">+8%</td></tr>
+            <tr><td>all</td><td>correctness</td><td colspan="3" class="faint">token ids match exactly</td><td><span class="status ok"><i class="dot"></i>Match</span></td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 9 REVIEW: PROPOSALS -->
+<section class="screen">
+  <div class="screen-head"><span class="num">9</span><h2>Review — Proposals tab (live run)</h2><span class="route">same page, Proposals tab</span></div>
+  <div class="frame">
+    <div class="topbar">
+      <span class="crumb"><span class="wordmark">Atlas</span> &nbsp;/&nbsp; <b>rohitsandadi/nanoGPT</b> &nbsp;/&nbsp; <span class="mono">opt-sampling</span> &nbsp;/&nbsp; <span class="mono">hero_1787471941</span></span>
+      <span class="status busy"><i class="dot"></i>Investigating</span>
+    </div>
+    <div class="body-cols">
+      <div class="sidebar">
+        <span class="nav">Overview</span>
+        <span class="nav active">Branches &amp; PRs</span>
+        <span class="nav">Reviews</span>
+        <span class="nav">Evals</span>
+      </div>
+      <div class="main">
+        <div class="tabs" style="margin-top: 2px;">
+          <span class="tab">Verdict</span><span class="tab active">Proposals</span><span class="tab">Trace</span><span class="tab">Report</span>
+        </div>
+        <div class="prop">
+          <div class="hd">
+            <span class="mono">p1</span>
+            <span class="mono" style="font-size:12px;">profile_pair</span>
+            <span class="status busy"><i class="dot"></i>Awaiting approval</span>
+            <span class="mono faint" style="margin-left:auto; font-size:11px;">est 40.9 GPU-s · ~$0.01</span>
+          </div>
+          <div class="reason">Regression is a per-token cost (~2.6–3.1 ms/step, scaling with step count; VRAM unchanged). A profiler capture attributes the moved time to specific ops — separating the blocking host copy from the CPU multinomial, and sizing each.</div>
+          <div class="params">{"eval": "generate_short", "tokens": 128, "repeats": 1}</div>
+          <div class="ft">
+            <span class="faint" style="font-size:11px;">expires in 1:42</span>
+            <span style="display:flex; gap:8px;"><span class="btn danger sm">Deny</span><span class="btn primary sm">Approve</span></span>
+          </div>
+        </div>
+        <div class="prop" style="border-color: var(--border-soft);">
+          <div class="hd">
+            <span class="mono">p0</span>
+            <span class="mono" style="font-size:12px;">confirm_pair</span>
+            <span class="status ok"><i class="dot"></i>Done</span>
+            <span class="mono faint" style="margin-left:auto; font-size:11px;">31.2 GPU-s · $0.01</span>
+          </div>
+          <div class="reason">Effect reproduced: -33.5% on rerun. <span class="ref" style="color: var(--blue); font-size:10.5px;">experiments/e1</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <p class="note">Approve/Deny are live on manual-approval runs; with auto-approve the card renders already-executed. Budget remaining shows in the tab when a proposal is open.</p>
+</section>
+
+<!-- 10 REVIEW: TRACE -->
+<section class="screen">
+  <div class="screen-head"><span class="num">10</span><h2>Review — Trace tab</h2><span class="route">same page, Trace tab</span></div>
+  <div class="frame">
+    <div class="topbar">
+      <span class="crumb"><span class="wordmark">Atlas</span> &nbsp;/&nbsp; <b>rohitsandadi/nanoGPT</b> &nbsp;/&nbsp; <span class="mono">opt-sampling</span> &nbsp;/&nbsp; <span class="mono">hero_1787471941</span></span>
+      <span class="mono faint" style="font-size:11px;">$0.25</span>
+    </div>
+    <div class="body-cols">
+      <div class="sidebar">
+        <span class="nav">Overview</span>
+        <span class="nav active">Branches &amp; PRs</span>
+        <span class="nav">Reviews</span>
+        <span class="nav">Evals</span>
+      </div>
+      <div class="main">
+        <div class="tabs" style="margin-top: 2px;">
+          <span class="tab">Verdict</span><span class="tab">Proposals</span><span class="tab active">Trace</span><span class="tab">Report</span>
+        </div>
+        <div class="phase">Plan</div>
+        <div class="ev"><span class="tm">07:59:28</span><span class="badge tier agent">agent</span><span class="k">plan</span><span class="d">evals [generate_short] — the sampling path changed; per-token latency exposes the per-step cost</span></div>
+        <div class="phase">Measure</div>
+        <div class="ev"><span class="tm">07:59:35</span><span class="badge tier">system</span><span class="k">sandbox_up</span><span class="d">NVIDIA A10G</span></div>
+        <div class="ev"><span class="tm">08:00:24</span><span class="badge tier">system</span><span class="k">bench_block_done</span><span class="d">base · 394.1 tok/s · p95 649.7 ms</span><span class="ref">b0_base.json</span></div>
+        <div class="ev"><span class="tm">08:00:43</span><span class="badge tier">system</span><span class="k">bench_block_done</span><span class="d">head · 262.0 tok/s · p95 977.9 ms</span><span class="ref">b1_head.json</span></div>
+        <div class="phase">Verdict</div>
+        <div class="ev"><span class="tm">08:01:23</span><span class="badge tier policy">policy</span><span class="k">verdict</span><span class="d">REGRESSION — tokens_per_s -33.3% · p95 +49.0%</span></div>
+        <div class="phase">Investigate</div>
+        <div class="ev"><span class="tm">08:02:49</span><span class="badge tier agent">agent</span><span class="k">probe_proposed</span><span class="d">profile_pair · distinguish host stall from GPU compute</span></div>
+        <div class="ev"><span class="tm">08:05:12</span><span class="badge tier agent">agent</span><span class="k">conclusion</span><span class="d">fixed per-token host cost in generate() sampling; GPU flat</span><span class="ref">e1/trace.json</span></div>
+      </div>
+    </div>
+  </div>
+  <p class="note">Rows grouped by lifecycle phase (Collapsible), tier badges (system / policy / agent), evidence refs open the artifact.</p>
+</section>
+
+<!-- 11 REVIEW: REPORT -->
+<section class="screen">
+  <div class="screen-head"><span class="num">11</span><h2>Review — Report tab</h2><span class="route">same page, Report tab</span></div>
+  <div class="frame">
+    <div class="topbar">
+      <span class="crumb"><span class="wordmark">Atlas</span> &nbsp;/&nbsp; <b>rohitsandadi/nanoGPT</b> &nbsp;/&nbsp; <span class="mono">opt-sampling</span> &nbsp;/&nbsp; <span class="mono">hero_1787471941</span></span>
+      <span class="mono faint" style="font-size:11px;">$0.25</span>
+    </div>
+    <div class="body-cols">
+      <div class="sidebar">
+        <span class="nav">Overview</span>
+        <span class="nav active">Branches &amp; PRs</span>
+        <span class="nav">Reviews</span>
+        <span class="nav">Evals</span>
+      </div>
+      <div class="main">
+        <div class="tabs" style="margin-top: 2px;">
+          <span class="tab">Verdict</span><span class="tab">Proposals</span><span class="tab">Trace</span><span class="tab active">Report</span>
+        </div>
+        <div class="card">
+          <div class="t">Diagnosis <span class="badge" style="margin-left:6px;">high confidence</span></div>
+          <div class="line" style="color: var(--muted);">Host-side sampling adds a blocking DtoH copy + full-device sync + CPU multinomial (~2.7 ms/step of host time, GPU flat). The removed kernel launches were worth ~0.15 ms/step — never the bottleneck.</div>
+        </div>
+        <div class="card">
+          <div class="t">PR comment</div>
+          <div class="line mono" style="font-size:10.5px; line-height:1.7;">
+            ## Atlas: REGRESSION<br>
+            – Claim "~2x faster generation" — NOT TRUE by measurement.<br>
+            – tokens_per_s 392.5 → 259.6 (-33.9%, limit -10%) · p95 +52.1%<br>
+            – @greptileai correlate the measured runtime evidence with the changed code paths.
+          </div>
+          <div class="ft" style="display:flex; justify-content:flex-end; margin-top:8px;"><span class="btn sm">Copy markdown</span></div>
+        </div>
+        <div class="card">
+          <div class="row">
+            <div class="t">fix_context.json <span class="faint" style="font-weight:400;">— for the coding agent</span></div>
+            <span class="btn sm">Expand</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 12 EVALS -->
+<section class="screen">
+  <div class="screen-head"><span class="num">12</span><h2>Evals</h2><span class="route">/repo/rohitsandadi/nanoGPT/evals</span></div>
+  <div class="frame">
+    <div class="topbar">
+      <span class="crumb"><span class="wordmark">Atlas</span> &nbsp;/&nbsp; <b>rohitsandadi/nanoGPT</b></span>
+      <span class="btn primary">New review</span>
+    </div>
+    <div class="body-cols">
+      <div class="sidebar">
+        <span class="nav">Overview</span>
+        <span class="nav">Branches &amp; PRs</span>
+        <span class="nav">Reviews</span>
+        <span class="nav active">Evals</span>
+      </div>
+      <div class="main">
+        <div class="main-head">
+          <span class="mono faint" style="font-size:11px;">atlas.yaml @ master · correctness: token_ids_match · overrides: batch</span>
+          <span class="btn">New eval</span>
+        </div>
+        <table class="wf">
+          <tr><th>Eval</th><th>Command</th><th>Checks</th><th>Last result</th></tr>
+          <tr>
+            <td class="mono">generate_short</td>
+            <td class="mono faint" style="font-size:10.5px;">bench.py --tokens 128 --batch 2 --repeats 5</td>
+            <td><span class="badge">tokens/s ≥ -10%</span> <span class="badge">p95 ≤ +15%</span> <span class="badge">VRAM ≤ +8%</span> <span class="badge">p95 &lt; 3000ms</span></td>
+            <td class="neg">-33.9%</td>
+          </tr>
+          <tr>
+            <td class="mono">generate_long</td>
+            <td class="mono faint" style="font-size:10.5px;">bench.py --tokens 512 --batch 2 --repeats 3</td>
+            <td><span class="badge">tokens/s ≥ -10%</span> <span class="badge">p95 ≤ +15%</span> <span class="badge">VRAM ≤ +8%</span></td>
+            <td class="neg">-15.6%</td>
+          </tr>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="questions">
+  <h2>Decisions I need from you</h2>
+  <ol>
+    <li><strong>Sidebar:</strong> Overview / Branches &amp; PRs / Reviews / Evals — confirm.</li>
+    <li><strong>Branches and PRs merged in one list</strong> (PR badge on branch rows) vs separate tabs?</li>
+    <li><strong>"Reviews" as the word for runs?</strong></li>
+    <li><strong>Branch data:</strong> demo serves the fork's real branches from the API; live GitHub fetch is a stretch. OK?</li>
+  </ol>
+</div>
+</div>
