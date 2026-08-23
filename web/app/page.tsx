@@ -20,6 +20,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { ConnectRepoDialog } from "@/components/connect-repo-dialog";
+import { Brand } from "@/components/brand";
 import { StatusDot } from "@/components/status-dot";
 import { Delta } from "@/components/atoms";
 import {
@@ -122,8 +123,8 @@ export default function HomePage() {
 
   return (
     <div className="flex min-h-dvh flex-col">
-      <header className="flex items-center justify-between gap-3 border-b border-border-soft px-4 py-2">
-        <span className="text-[13px] font-semibold">inferval</span>
+      <header className="flex min-h-16 items-center justify-between gap-4 border-b border-border-soft bg-sidebar px-6 py-3">
+        <Brand />
         <div className="flex items-center gap-2">
           <div className="relative">
             <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-faint" />
@@ -131,7 +132,7 @@ export default function HomePage() {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search repos…"
-              className="h-8 w-52 pl-8 text-[13px]"
+              className="h-9 w-64 pl-9 text-sm"
             />
           </div>
           {gh?.connected && (
@@ -161,8 +162,14 @@ export default function HomePage() {
         connectedNames={repos?.map((r) => r.name) ?? []}
         onConnected={refreshRepos}
       />
-      <main className="mx-auto w-full max-w-[1240px] flex-1 p-5">
-        <div className="grid grid-cols-[1fr_300px] items-start gap-4 max-md:grid-cols-1">
+      <main className="mx-auto w-full max-w-[1480px] flex-1 px-8 py-8 max-md:px-4">
+        <div className="mb-7">
+          <h1 className="text-2xl font-semibold tracking-tight">Repositories</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Runtime verification, reviews, and evaluation activity across your projects.
+          </p>
+        </div>
+        <div className="space-y-10">
           {visible === null || reposPending ? (
             <div className="space-y-2">
               {[0, 1, 2].map((i) => (
@@ -173,15 +180,15 @@ export default function HomePage() {
             <Table>
               <TableHeader>
                 <TableRow className="border-border-soft hover:bg-transparent">
-                  <TableHead className="text-[11px] font-normal text-faint">Repo</TableHead>
-                  <TableHead className="text-[11px] font-normal text-faint">GPU</TableHead>
-                  <TableHead className="text-[11px] font-normal text-faint">Suite</TableHead>
-                  <TableHead className="text-[11px] font-normal text-faint">Changes</TableHead>
-                  <TableHead className="text-[11px] font-normal text-faint">State</TableHead>
-                  <TableHead className="text-[11px] font-normal text-faint">
+                  <TableHead className="text-[13px] font-normal text-faint">Repo</TableHead>
+                  <TableHead className="text-[13px] font-normal text-faint">GPU</TableHead>
+                  <TableHead className="text-[13px] font-normal text-faint">Suite</TableHead>
+                  <TableHead className="text-[13px] font-normal text-faint">Changes</TableHead>
+                  <TableHead className="text-[13px] font-normal text-faint">State</TableHead>
+                  <TableHead className="text-[13px] font-normal text-faint">
                     Last review
                   </TableHead>
-                  <TableHead className="text-right text-[11px] font-normal text-faint">
+                  <TableHead className="text-right text-[13px] font-normal text-faint">
                     Spend
                   </TableHead>
                 </TableRow>
@@ -219,7 +226,7 @@ export default function HomePage() {
                     >
                       <TableCell>
                         <span className="text-xs font-medium">{repo.name}</span>
-                        <span className="mt-0.5 block font-mono text-[9.5px] text-faint">
+                        <span className="mt-0.5 block font-mono text-[11px] text-faint">
                           base {repo.default_branch}
                           {baseSha ? ` @ ${shortSha(baseSha)}` : ""}
                         </span>
@@ -271,7 +278,7 @@ export default function HomePage() {
                               }
                               className="text-xs"
                             />
-                            <span className="font-mono text-[10px] text-faint">
+                            <span className="font-mono text-[12px] text-faint">
                               {relShort(latest.created_at)}
                             </span>
                           </span>
@@ -299,38 +306,55 @@ export default function HomePage() {
             </Table>
           )}
 
-          <div className="border-l border-border-soft pl-3.5 max-md:border-l-0 max-md:pl-0">
-            <p className="text-[10.5px] uppercase tracking-wide text-faint">
-              Recent reviews
-            </p>
-            <div className="mt-1">
+          <section>
+            <div className="mb-4 flex items-end justify-between gap-4">
+              <div>
+                <h2 className="text-lg font-semibold tracking-tight">Recent reviews</h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  The latest verification activity across connected repositories.
+                </p>
+              </div>
+            </div>
+            <div className="grid grid-cols-4 gap-4 max-xl:grid-cols-3 max-lg:grid-cols-2 max-sm:grid-cols-1">
               {feed.map(({ repo, r }) => {
                 const live = r.status !== "done";
                 return (
                   <Link
                     key={r.run}
                     href={`/repo/${repo}/reviews/${r.run}`}
-                    className="flex items-baseline gap-2 border-b border-border-soft py-1.5 text-[11px] last:border-b-0 hover:bg-surface"
+                    className="group flex min-h-40 flex-col rounded-xl border border-border-soft bg-card p-5 transition-colors hover:border-border hover:bg-muted"
                   >
-                    <span className="w-8 shrink-0 font-mono text-[9.5px] text-faint">
-                      {relShort(r.created_at)}
-                    </span>
-                    <i
-                      className={
-                        "size-[7px] shrink-0 translate-y-px rounded-full " +
-                        (live
-                          ? "bg-live"
-                          : r.verdict === "pass"
-                            ? "bg-ok"
-                            : "bg-bad")
-                      }
-                      aria-hidden
-                    />
-                    <span className="min-w-0 truncate text-muted-foreground">
-                      <span className="font-mono text-[10px]">{r.run}</span>
-                      {r.branch ? ` ${r.branch}` : ""}{" "}
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="inline-flex items-center gap-2 text-xs font-medium">
+                        <i
+                          className={
+                            "size-2 shrink-0 rounded-full " +
+                            (live
+                              ? "bg-live"
+                              : r.verdict === "pass"
+                                ? "bg-ok"
+                                : "bg-bad")
+                          }
+                          aria-hidden
+                        />
+                        {live ? r.status : r.verdict}
+                      </span>
+                      <span className="font-mono text-[11px] text-faint">
+                        {relShort(r.created_at)}
+                      </span>
+                    </div>
+                    <div className="mt-5 min-w-0">
+                      <p className="truncate text-sm font-semibold text-foreground">
+                        {repo}
+                      </p>
+                      <p className="mt-1 truncate font-mono text-xs text-muted-foreground">
+                        {r.branch ?? "default branch"}
+                      </p>
+                    </div>
+                    <div className="mt-auto flex items-end justify-between gap-3 pt-5">
+                      <span className="font-mono text-[11px] text-faint">{r.run}</span>
                       {live ? (
-                        <span className="text-faint">— {r.status}</span>
+                        <span className="text-xs text-live">in progress</span>
                       ) : (
                         <Delta
                           pct={r.tokens_per_s_delta_pct}
@@ -341,18 +365,20 @@ export default function HomePage() {
                                 ? "good"
                                 : "neutral"
                           }
-                          className="text-[10px]"
+                          className="text-sm font-semibold"
                         />
                       )}
-                    </span>
+                    </div>
                   </Link>
                 );
               })}
               {feed.length === 0 && (
-                <p className="py-2 text-[11px] text-faint">no reviews yet</p>
+                <div className="col-span-full rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
+                  No reviews yet
+                </div>
               )}
             </div>
-          </div>
+          </section>
         </div>
       </main>
     </div>

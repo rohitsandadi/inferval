@@ -130,7 +130,7 @@ export function NewEvalDialog({
 
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1.5">
-            <Label htmlFor="ne-name" className="text-[11px] text-muted-foreground">
+            <Label htmlFor="ne-name" className="text-[13px] text-muted-foreground">
               Name
             </Label>
             <Input
@@ -138,11 +138,11 @@ export function NewEvalDialog({
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="generate_batch8"
-              className="h-8 font-mono text-xs"
+              className="h-9 font-mono text-sm"
             />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="ne-gpu" className="text-[11px] text-muted-foreground">
+            <Label htmlFor="ne-gpu" className="text-[13px] text-muted-foreground">
               GPU
             </Label>
             <Select value={gpu} onValueChange={(v) => setGpu(v as string)}>
@@ -160,7 +160,7 @@ export function NewEvalDialog({
           </div>
 
           <div className="col-span-2 space-y-1.5">
-            <Label htmlFor="ne-cmd" className="text-[11px] text-muted-foreground">
+            <Label htmlFor="ne-cmd" className="text-[13px] text-muted-foreground">
               Command
             </Label>
             <Input
@@ -168,12 +168,12 @@ export function NewEvalDialog({
               value={cmd}
               onChange={(e) => setCmd(e.target.value)}
               placeholder="bench.py --eval generate_batch8 --tokens 128 --batch 8 --out {out}"
-              className="h-8 font-mono text-xs"
+              className="h-9 font-mono text-sm"
             />
           </div>
 
           <div className="col-span-2 space-y-1.5">
-            <Label className="text-[11px] text-muted-foreground">Checks</Label>
+            <Label className="text-[13px] text-muted-foreground">Checks</Label>
             <div className="rounded-md border border-border">
               {checks.map((row, i) => (
                 <div
@@ -190,7 +190,7 @@ export function NewEvalDialog({
                       )
                     }
                   >
-                    <SelectTrigger size="sm" className="h-7 flex-1 font-mono text-[11px]">
+                    <SelectTrigger size="sm" className="h-8 flex-1 font-mono text-xs">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -211,7 +211,7 @@ export function NewEvalDialog({
                       )
                     }
                     placeholder="-10%"
-                    className="h-7 w-20 font-mono text-[11px]"
+                    className="h-8 w-24 font-mono text-xs"
                   />
                   <button
                     type="button"
@@ -233,7 +233,7 @@ export function NewEvalDialog({
                     { metric: "peak_vram_mb", threshold: "+8%" },
                   ])
                 }
-                className="w-full px-2.5 py-1.5 text-left font-mono text-[11px] text-faint hover:text-foreground"
+                className="w-full px-2.5 py-1.5 text-left font-mono text-[13px] text-faint hover:text-foreground"
               >
                 + Add check
               </button>
@@ -241,7 +241,7 @@ export function NewEvalDialog({
           </div>
 
           <div className="col-span-2 space-y-1.5">
-            <Label htmlFor="ne-abs" className="text-[11px] text-muted-foreground">
+            <Label htmlFor="ne-abs" className="text-[13px] text-muted-foreground">
               Absolute limit (optional)
             </Label>
             <Input
@@ -249,13 +249,13 @@ export function NewEvalDialog({
               value={absolute}
               onChange={(e) => setAbsolute(e.target.value)}
               placeholder="latency_ms_p95 < 3000"
-              className="h-8 font-mono text-xs"
+              className="h-9 font-mono text-sm"
             />
           </div>
         </div>
 
         {prefill?.est_gpu_seconds !== undefined && (
-          <p className="font-mono text-[10px] text-faint">
+          <p className="font-mono text-[12px] text-faint">
             est_gpu_seconds {prefill.est_gpu_seconds} · adds ~$
             {Math.max(0.01, prefill.est_gpu_seconds * (1.1 / 3600)).toFixed(2)}{" "}
             per review

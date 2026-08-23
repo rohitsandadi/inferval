@@ -7,9 +7,15 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-geist-sans);
+  --font-sans: var(--font-instrument-sans);
+  --font-mono: var(--font-jetbrains-mono);
+  --font-heading: var(--font-instrument-sans);
+  --text-xs: 0.8125rem;
+  --text-xs--line-height: 1.2rem;
+  --text-sm: 0.9375rem;
+  --text-sm--line-height: 1.4rem;
+  --text-base: 1rem;
+  --text-base--line-height: 1.55rem;
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -39,14 +45,13 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
-  /* boxy: 6px controls, 8px cards/frames */
-  --radius-sm: 4px;
-  --radius-md: 6px;
-  --radius-lg: 6px;
-  --radius-xl: 8px;
-  --radius-2xl: 10px;
-  --radius-3xl: 12px;
-  --radius-4xl: 14px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 10px;
+  --radius-xl: 12px;
+  --radius-2xl: 14px;
+  --radius-3xl: 16px;
+  --radius-4xl: 18px;
   /* semantic + hairline extras */
   --color-ok: var(--ok);
   --color-bad: var(--bad);
@@ -58,52 +63,51 @@
 }
 
 :root {
-  /* dark only — Vercel family: true black ground, hairline borders */
-  --ground: #000000;
-  --surface: #0a0a0a;
-  --border-soft: #1c1c1c;
-  --faint: #666666;
-  --ok: #45c486;
-  --bad: #e5484d;
-  --live: #0070f3;
-  --note: #d9a441;
+  --ground: #111111;
+  --surface: #1b1b1b;
+  --border-soft: #2b2b2b;
+  --faint: #7c7c7c;
+  --ok: #5bd39a;
+  --bad: #ff7077;
+  --live: #6aafff;
+  --note: #e7bb62;
 
-  --background: #000000;
-  --foreground: #ededed;
-  --card: #0a0a0a;
-  --card-foreground: #ededed;
-  --popover: #0a0a0a;
-  --popover-foreground: #ededed;
+  --background: #121212;
+  --foreground: #f1f1f1;
+  --card: #191919;
+  --card-foreground: #f1f1f1;
+  --popover: #1d1d1d;
+  --popover-foreground: #f1f1f1;
   --primary: #ededed;
-  --primary-foreground: #000000;
-  --secondary: #0a0a0a;
+  --primary-foreground: #171717;
+  --secondary: #242424;
   --secondary-foreground: #ededed;
-  --muted: #111111;
-  --muted-foreground: #a1a1a1;
-  --accent: #1c1c1c;
-  --accent-foreground: #ededed;
-  --destructive: #e5484d;
-  --border: #2e2e2e;
-  --input: #2e2e2e;
-  --ring: #525252;
-  --chart-1: #ddd;
-  --chart-2: #999;
-  --chart-3: #777;
-  --chart-4: #555;
-  --chart-5: #333;
-  --radius: 0.5rem;
-  --sidebar: #000000;
-  --sidebar-foreground: #ededed;
+  --muted: #222222;
+  --muted-foreground: #aaaaaa;
+  --accent: #2c2c2c;
+  --accent-foreground: #f5f5f5;
+  --destructive: #ff7077;
+  --border: #363636;
+  --input: #3b3b3b;
+  --ring: #777777;
+  --chart-1: #7db5ff;
+  --chart-2: #6fd2a2;
+  --chart-3: #c59aff;
+  --chart-4: #e7bb62;
+  --chart-5: #ff8c91;
+  --radius: 0.75rem;
+  --sidebar: #0f0f0f;
+  --sidebar-foreground: #e8e8e8;
   --sidebar-primary: #ededed;
-  --sidebar-primary-foreground: #000000;
-  --sidebar-accent: #0a0a0a;
-  --sidebar-accent-foreground: #ededed;
-  --sidebar-border: #1c1c1c;
-  --sidebar-ring: #525252;
+  --sidebar-primary-foreground: #171717;
+  --sidebar-accent: #1e1e1e;
+  --sidebar-accent-foreground: #f1f1f1;
+  --sidebar-border: #2b2b2b;
+  --sidebar-ring: #777777;
 }
 
 .dark {
-  --background: #000000;
+  --background: #121212;
 }
 
 @layer base {
@@ -112,9 +116,14 @@
   }
   body {
     @apply bg-background text-foreground;
+    min-width: 320px;
   }
   html {
     @apply font-sans;
+    color-scheme: dark;
+  }
+  ::selection {
+    background: rgb(255 255 255 / 18%);
   }
 }
 /* rendered PR-comment markdown */
@@ -125,7 +134,7 @@
 .pr-md ul { margin: 0.6rem 0; padding-left: 1.25rem; list-style: disc; }
 .pr-md li { margin: 0.25rem 0; }
 .pr-md strong { font-weight: 650; }
-.pr-md code { font-family: var(--font-geist-mono); font-size: 0.8em; background: var(--surface); border: 1px solid var(--border); border-radius: 4px; padding: 0.1em 0.35em; }
+.pr-md code { font-family: var(--font-jetbrains-mono); font-size: 0.85em; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 0.1em 0.35em; }
 .pr-md details { border: 1px solid var(--border-soft); border-radius: 6px; padding: 0.5rem 0.75rem; margin: 0.6rem 0; }
 .pr-md summary { cursor: pointer; color: var(--muted-foreground); font-size: 0.8rem; }
 .pr-md em { color: var(--muted-foreground); }

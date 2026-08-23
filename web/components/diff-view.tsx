@@ -37,7 +37,7 @@ export function RiskTag({ risk }: { risk: RiskKind }) {
   return (
     <span
       className={cn(
-        "rounded-[4px] border px-1.5 font-mono text-[9px] leading-4",
+        "rounded-[4px] border px-1.5 font-mono text-[11px] leading-4",
         riskTag[risk] ?? "border-border text-muted-foreground",
       )}
     >
@@ -56,7 +56,7 @@ export function CoverageChip({
   return (
     <span
       className={cn(
-        "whitespace-nowrap rounded-full border px-1.5 font-mono text-[9.5px] leading-4",
+        "whitespace-nowrap rounded-full border px-1.5 font-mono text-[11px] leading-4",
         gap ? "border-note/40 text-note" : "border-border text-muted-foreground",
       )}
     >
@@ -78,7 +78,7 @@ function ChipRow({ chip }: { chip: VerdictChip }) {
   return (
     <div
       className={cn(
-        "ml-[88px] flex min-w-[520px] items-center gap-2 border-l-2 px-2.5 py-1 font-mono text-[10px] text-foreground",
+        "ml-[88px] flex min-w-[520px] items-center gap-2 border-l-2 px-2.5 py-1 font-mono text-[12px] text-foreground",
         chip.tone === "bad"
           ? "border-bad bg-bad/5"
           : "border-ok bg-ok/5",
@@ -128,12 +128,12 @@ export function AnnotationPopover({
   const gap = annotation.coverage === "gap";
   return (
     <div
-      className="absolute z-10 w-[268px] rounded-lg border border-border bg-surface p-3 text-[11px] shadow-[0_10px_30px_rgba(0,0,0,0.6)]"
+      className="absolute z-10 w-[268px] rounded-lg border border-border bg-surface p-3 text-[13px] shadow-[0_10px_30px_rgba(0,0,0,0.6)]"
       style={style}
     >
       <div className="flex items-center gap-2">
         <RiskTag risk={annotation.risk} />
-        <span className="font-mono text-[10px]">
+        <span className="font-mono text-[12px]">
           {annotation.id} · {annotation.path}{" "}
           {annotation.start_line === annotation.end_line
             ? annotation.start_line
@@ -148,11 +148,11 @@ export function AnnotationPopover({
           ×
         </button>
       </div>
-      <p className="mt-1.5 text-[10.5px] leading-relaxed text-muted-foreground">
+      <p className="mt-1.5 text-[12px] leading-relaxed text-muted-foreground">
         {annotation.note}
       </p>
       <div className="mt-2 flex flex-wrap items-center gap-1.5">
-        <span className="text-[10px] text-faint">Coverage</span>
+        <span className="text-[12px] text-faint">Coverage</span>
         {gap ? (
           <CoverageChip label="gap" gap />
         ) : (
@@ -163,7 +163,7 @@ export function AnnotationPopover({
       </div>
       {gap && onDraftEval && (
         <div className="mt-2.5 flex items-center justify-between border-t border-border-soft pt-2">
-          <span className="text-[10px] text-faint">asks the session agent</span>
+          <span className="text-[12px] text-faint">asks the session agent</span>
           <Button size="xs" variant="outline" onClick={() => onDraftEval(annotation)}>
             Draft eval
           </Button>
@@ -194,11 +194,11 @@ export function DiffView({
   return (
     <div className="relative">
       <div className="overflow-x-auto rounded-md border border-border-soft">
-        <div className="flex items-center justify-between gap-2.5 border-b border-border-soft bg-surface px-2.5 py-1 font-mono text-[10.5px] text-muted-foreground">
+        <div className="flex items-center justify-between gap-2.5 border-b border-border-soft bg-surface px-2.5 py-1 font-mono text-[12px] text-muted-foreground">
           <span>{file.path}</span>
           <span className="text-faint">{context}</span>
         </div>
-        <div className="min-w-[640px] font-mono text-[10.5px] leading-[1.75]">
+        <div className="min-w-[640px] font-mono text-[12px] leading-[1.75]">
           {file.hunks.map((h, hi) => (
             <div key={hi}>
               {h.lines.map((line, li) => {

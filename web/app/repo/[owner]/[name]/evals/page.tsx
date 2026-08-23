@@ -148,9 +148,9 @@ export default function EvalsPage({
   };
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="font-mono text-[11px] text-faint">
+        <p className="font-mono text-[13px] text-faint">
           inferval.yaml @ {repo?.default_branch ?? "—"}
           {repo?.correctness ? ` · correctness: ${repo.correctness}` : ""}
           {repo?.overrides?.length
@@ -172,14 +172,14 @@ export default function EvalsPage({
         <Table>
           <TableHeader>
             <TableRow className="border-border-soft hover:bg-transparent">
-              <TableHead className="text-[11px] font-normal text-faint">Eval</TableHead>
-              <TableHead className="text-[11px] font-normal text-faint">Origin</TableHead>
-              <TableHead className="text-[11px] font-normal text-faint">Command</TableHead>
-              <TableHead className="text-[11px] font-normal text-faint">Checks</TableHead>
-              <TableHead className="text-[11px] font-normal text-faint">
+              <TableHead className="text-[13px] font-normal text-faint">Eval</TableHead>
+              <TableHead className="text-[13px] font-normal text-faint">Origin</TableHead>
+              <TableHead className="text-[13px] font-normal text-faint">Command</TableHead>
+              <TableHead className="text-[13px] font-normal text-faint">Checks</TableHead>
+              <TableHead className="text-[13px] font-normal text-faint">
                 Last {HISTORY_N} reviews (Δ)
               </TableHead>
-              <TableHead className="text-right text-[11px] font-normal text-faint">
+              <TableHead className="text-right text-[13px] font-normal text-faint">
                 Last
               </TableHead>
             </TableRow>
@@ -195,18 +195,18 @@ export default function EvalsPage({
                     {typeof e.origin === "object" && e.origin !== null ? (
                       <Badge
                         variant="outline"
-                        className="rounded-full border-live/45 bg-live/10 font-mono text-[10px] text-live"
+                        className="rounded-full border-live/45 bg-live/10 font-mono text-[12px] text-live"
                       >
                         from PR #{e.origin.pr}
                       </Badge>
                     ) : (
-                      <span className="text-[11px] text-faint">
+                      <span className="text-[13px] text-faint">
                         {e.origin === "manual" ? "manual" : "seed"}
                       </span>
                     )}
                   </TableCell>
                   <TableCell className="max-w-56">
-                    <span className="block truncate font-mono text-[10.5px] text-faint">
+                    <span className="block truncate font-mono text-[12px] text-faint">
                       {e.cmd || "—"}
                     </span>
                   </TableCell>
@@ -216,7 +216,7 @@ export default function EvalsPage({
                         <Badge
                           key={m}
                           variant="outline"
-                          className="rounded-full font-mono text-[10px] text-muted-foreground"
+                          className="rounded-full font-mono text-[12px] text-muted-foreground"
                         >
                           {checkBadge(m, t)}
                         </Badge>
@@ -225,7 +225,7 @@ export default function EvalsPage({
                         <Badge
                           key={`abs-${m}`}
                           variant="outline"
-                          className="rounded-full font-mono text-[10px] text-muted-foreground"
+                          className="rounded-full font-mono text-[12px] text-muted-foreground"
                         >
                           {absoluteBadge(m, t)}
                         </Badge>
@@ -233,7 +233,7 @@ export default function EvalsPage({
                     </span>
                   </TableCell>
                   <TableCell>
-                    <span className="whitespace-nowrap font-mono text-[10px] tabular-nums text-faint">
+                    <span className="whitespace-nowrap font-mono text-[12px] tabular-nums text-faint">
                       {points.map((p, i) => (
                         <span key={i}>
                           {i > 0 && <span className="text-faint"> · </span>}
@@ -247,7 +247,7 @@ export default function EvalsPage({
                                 deltaTone(p.pct, p.metric) === "good" &&
                                   "text-ok",
                                 i === points.length - 1 &&
-                                  "font-semibold text-[10.5px]",
+                                  "font-semibold text-[12px]",
                               )}
                             >
                               {p.pct > 0 ? "+" : ""}

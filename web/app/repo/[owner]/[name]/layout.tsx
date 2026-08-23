@@ -14,6 +14,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { Brand } from "@/components/brand";
 import { NewReviewDialog } from "@/components/new-review-dialog";
 import { RepoSidebar } from "@/components/repo-sidebar";
 import { RepoShellContext, type Crumb } from "@/components/repo-shell";
@@ -86,11 +87,9 @@ export default function RepoLayout({
           workspace ? "h-dvh overflow-hidden" : "min-h-dvh",
         )}
       >
-        <header className="flex items-center justify-between gap-3 border-b border-border-soft px-4 py-2">
-          <nav className="flex min-w-0 items-center gap-2 text-[13px]">
-            <Link href="/" className="font-semibold text-foreground">
-              inferval
-            </Link>
+        <header className="flex min-h-16 items-center justify-between gap-4 border-b border-border-soft bg-sidebar px-6 py-3">
+          <nav className="flex min-w-0 items-center gap-2.5 text-sm">
+            <Brand className="mr-1" />
             <span className="text-faint">/</span>
             <Link
               href={base}
@@ -141,8 +140,8 @@ export default function RepoLayout({
         ) : (
           <div className="flex flex-1 max-md:flex-col">
             <RepoSidebar owner={owner} name={name} />
-            <main className="min-w-0 flex-1 px-6 py-5">
-              <div className="mx-auto max-w-[1240px]">{children}</div>
+            <main className="min-w-0 flex-1 px-8 py-8 max-lg:px-5">
+              <div className="mx-auto max-w-[1420px]">{children}</div>
             </main>
           </div>
         )}

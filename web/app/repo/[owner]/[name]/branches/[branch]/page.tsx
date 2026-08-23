@@ -92,13 +92,13 @@ export default function BranchDetailPage({
         <span className="font-mono text-sm">{branchName}</span>
         {info?.pr && (
           <a href={info.pr.url} target="_blank" rel="noreferrer">
-            <Badge variant="outline" className="rounded-full font-mono text-[10px] text-live">
+            <Badge variant="outline" className="rounded-full font-mono text-[12px] text-live">
               PR #{info.pr.number}
             </Badge>
           </a>
         )}
         {dot && <StatusDot state={dot.state} label={dot.label} className="text-xs" />}
-        <span className="font-mono text-[11px] text-faint">
+        <span className="font-mono text-[13px] text-faint">
           {info ? shortSha(info.sha) : "—"}
           {repo
             ? ` · vs ${repo.default_branch}${baseSha ? ` @ ${shortSha(baseSha)}` : ""}`

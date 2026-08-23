@@ -26,16 +26,16 @@ export function ChecksTable({ verdict }: { verdict: Verdict }) {
     <Table>
       <TableHeader>
         <TableRow className="border-border-soft hover:bg-transparent">
-          <TableHead className="text-[11px] font-normal text-faint">Eval</TableHead>
-          <TableHead className="text-[11px] font-normal text-faint">Metric</TableHead>
-          <TableHead className="text-right text-[11px] font-normal text-faint">
+          <TableHead className="text-[13px] font-normal text-faint">Eval</TableHead>
+          <TableHead className="text-[13px] font-normal text-faint">Metric</TableHead>
+          <TableHead className="text-right text-[13px] font-normal text-faint">
             Base
           </TableHead>
-          <TableHead className="text-right text-[11px] font-normal text-faint">
+          <TableHead className="text-right text-[13px] font-normal text-faint">
             Candidate
           </TableHead>
-          <TableHead className="text-right text-[11px] font-normal text-faint">Δ</TableHead>
-          <TableHead className="text-right text-[11px] font-normal text-faint">
+          <TableHead className="text-right text-[13px] font-normal text-faint">Δ</TableHead>
+          <TableHead className="text-right text-[13px] font-normal text-faint">
             Threshold
           </TableHead>
         </TableRow>

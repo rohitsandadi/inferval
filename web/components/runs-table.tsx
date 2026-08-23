@@ -50,26 +50,26 @@ export function RunsTable({
     <Table>
       <TableHeader>
         <TableRow className="border-border-soft hover:bg-transparent">
-          <TableHead className="text-[11px] font-normal text-faint">Review</TableHead>
-          <TableHead className="text-[11px] font-normal text-faint">Change</TableHead>
-          <TableHead className="text-[11px] font-normal text-faint">Verdict</TableHead>
-          <TableHead className="text-right text-[11px] font-normal text-faint">
+          <TableHead className="text-[13px] font-normal text-faint">Review</TableHead>
+          <TableHead className="text-[13px] font-normal text-faint">Change</TableHead>
+          <TableHead className="text-[13px] font-normal text-faint">Verdict</TableHead>
+          <TableHead className="text-right text-[13px] font-normal text-faint">
             tokens/s Δ
           </TableHead>
-          <TableHead className="text-right text-[11px] font-normal text-faint">
+          <TableHead className="text-right text-[13px] font-normal text-faint">
             p95 Δ
           </TableHead>
-          <TableHead className="text-right text-[11px] font-normal text-faint">
+          <TableHead className="text-right text-[13px] font-normal text-faint">
             Evals
           </TableHead>
-          <TableHead className="text-[11px] font-normal text-faint">GPU</TableHead>
-          <TableHead className="text-right text-[11px] font-normal text-faint">
+          <TableHead className="text-[13px] font-normal text-faint">GPU</TableHead>
+          <TableHead className="text-right text-[13px] font-normal text-faint">
             Wall
           </TableHead>
-          <TableHead className="text-right text-[11px] font-normal text-faint">
+          <TableHead className="text-right text-[13px] font-normal text-faint">
             Cost
           </TableHead>
-          <TableHead className="text-right text-[11px] font-normal text-faint">
+          <TableHead className="text-right text-[13px] font-normal text-faint">
             When
           </TableHead>
         </TableRow>
@@ -91,7 +91,7 @@ export function RunsTable({
               <TableCell className="max-w-36 truncate font-mono text-xs">
                 {r.run}
               </TableCell>
-              <TableCell className="font-mono text-[11px] text-muted-foreground">
+              <TableCell className="font-mono text-[13px] text-muted-foreground">
                 {head} → {base}
               </TableCell>
               <TableCell className="text-xs">
@@ -135,7 +135,7 @@ export function RunsTable({
                   fmtCost(r.cost_usd)
                 )}
               </TableCell>
-              <TableCell className="text-right font-mono text-[11px] text-faint">
+              <TableCell className="text-right font-mono text-[13px] text-faint">
                 {fmtRelative(r.created_at).replace(" ago", "")}
               </TableCell>
             </TableRow>

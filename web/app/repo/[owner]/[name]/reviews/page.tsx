@@ -88,15 +88,15 @@ export default function ReviewsPage({
   }, [runs, query, branch, verdict]);
 
   return (
-    <div className="space-y-3">
-      <div className="flex flex-wrap items-center gap-2">
+    <div className="space-y-5">
+      <div className="flex flex-wrap items-center gap-3">
         <div className="relative">
           <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-faint" />
           <Input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search reviews…"
-            className="h-7 w-52 pl-8 text-xs"
+            className="h-9 w-64 pl-9 text-sm"
           />
         </div>
         <Select
@@ -154,7 +154,7 @@ export default function ReviewsPage({
           </SelectContent>
         </Select>
         {runs && (
-          <span className="ml-auto text-[11px] text-faint">
+          <span className="ml-auto text-[13px] text-faint">
             {runs.length} {runs.length === 1 ? "review" : "reviews"} ·{" "}
             {fmtCost(runs.reduce((acc, r) => acc + (r.cost_usd ?? 0), 0))} total
           </span>

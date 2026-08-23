@@ -127,7 +127,7 @@ export default function OverviewPage({
           t,
           node: (
             <>
-              <span className="font-mono text-[10px]">{r.run}</span> verdict —{" "}
+              <span className="font-mono text-[12px]">{r.run}</span> verdict —{" "}
               {r.verdict === "pass" ? "Pass" : r.verdict === "invalid" ? "Invalid" : "Regression"}{" "}
               <Delta
                 pct={r.tokens_per_s_delta_pct}
@@ -138,7 +138,7 @@ export default function OverviewPage({
                       ? "good"
                       : "neutral"
                 }
-                className="text-[10px]"
+                className="text-[12px]"
               />
             </>
           ),
@@ -148,10 +148,10 @@ export default function OverviewPage({
           t: r.created_at,
           node: (
             <>
-              <span className="font-mono text-[10px]">{r.run}</span> {r.status}
+              <span className="font-mono text-[12px]">{r.run}</span> {r.status}
               {r.branch ? ` ${r.branch}` : ""}
               {r.head_sha ? (
-                <span className="font-mono text-[10px]">
+                <span className="font-mono text-[12px]">
                   {" "}
                   @ {shortSha(r.head_sha)}
                 </span>
@@ -166,7 +166,7 @@ export default function OverviewPage({
         t: s.created_at,
         node: (
           <>
-            session <span className="font-mono text-[10px]">{s.session}</span>{" "}
+            session <span className="font-mono text-[12px]">{s.session}</span>{" "}
             attached {s.pr ? `PR #${s.pr.number}` : (s.branch ?? "")}
           </>
         ),
@@ -191,22 +191,25 @@ export default function OverviewPage({
   }
 
   return (
-    <div className="space-y-3">
-      <p className="font-mono text-[11px] text-faint">
-        base {repo.default_branch}
-        {baseSha ? ` @ ${shortSha(baseSha)}` : ""} · {repo.image} · {repo.gpu}
-      </p>
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-semibold tracking-tight">Repository overview</h1>
+        <p className="mt-1 font-mono text-xs text-muted-foreground">
+          base {repo.default_branch}
+          {baseSha ? ` @ ${shortSha(baseSha)}` : ""} · {repo.image} · {repo.gpu}
+        </p>
+      </div>
 
-      <div className="grid grid-cols-6 gap-2 max-md:grid-cols-3 max-sm:grid-cols-2">
-        <div className="rounded-lg border border-border-soft px-2.5 py-2">
-          <p className="text-[10.5px] text-faint">Open changes</p>
-          <p className="mt-0.5 text-xs">
+      <div className="grid grid-cols-6 gap-3 max-xl:grid-cols-3 max-sm:grid-cols-2">
+        <div className="rounded-xl border border-border-soft bg-card px-4 py-4 shadow-sm">
+          <p className="text-xs font-medium text-muted-foreground">Open changes</p>
+          <p className="mt-2 text-base font-semibold">
             {changes.length} br · {prCount} PR{prCount === 1 ? "" : "s"}
           </p>
         </div>
-        <div className="rounded-lg border border-border-soft px-2.5 py-2">
-          <p className="text-[10.5px] text-faint">Needs attention</p>
-          <p className="mt-0.5 text-xs">
+        <div className="rounded-xl border border-border-soft bg-card px-4 py-4 shadow-sm">
+          <p className="text-xs font-medium text-muted-foreground">Needs attention</p>
+          <p className="mt-2 text-base font-semibold">
             {regressions > 0 ? (
               <StatusDot
                 state="bad"
@@ -219,16 +222,16 @@ export default function OverviewPage({
             )}
           </p>
         </div>
-        <div className="rounded-lg border border-border-soft px-2.5 py-2">
-          <p className="text-[10.5px] text-faint">Suite</p>
-          <p className="mt-0.5 text-xs">
+        <div className="rounded-xl border border-border-soft bg-card px-4 py-4 shadow-sm">
+          <p className="text-xs font-medium text-muted-foreground">Suite</p>
+          <p className="mt-2 text-base font-semibold">
             {repo.evals.length + gapBorn} evals
             {gapBorn > 0 ? ` · ${gapBorn} gap-born` : ""}
           </p>
         </div>
-        <div className="rounded-lg border border-border-soft px-2.5 py-2">
-          <p className="text-[10.5px] text-faint">Sandboxes</p>
-          <p className="mt-0.5 text-xs">
+        <div className="rounded-xl border border-border-soft bg-card px-4 py-4 shadow-sm">
+          <p className="text-xs font-medium text-muted-foreground">Sandboxes</p>
+          <p className="mt-2 text-base font-semibold">
             {sandboxes.length === 0 ? (
               <span className="text-faint">—</span>
             ) : (
@@ -236,15 +239,15 @@ export default function OverviewPage({
             )}
           </p>
         </div>
-        <div className="rounded-lg border border-border-soft px-2.5 py-2">
-          <p className="text-[10.5px] text-faint">Spend</p>
-          <p className="mt-0.5 font-mono text-xs tabular-nums">
+        <div className="rounded-xl border border-border-soft bg-card px-4 py-4 shadow-sm">
+          <p className="text-xs font-medium text-muted-foreground">Spend</p>
+          <p className="mt-2 font-mono text-base font-semibold tabular-nums">
             {fmtCost(spend)}
           </p>
         </div>
-        <div className="rounded-lg border border-border-soft px-2.5 py-2">
-          <p className="text-[10.5px] text-faint">Last review</p>
-          <p className="mt-0.5 font-mono text-xs tabular-nums">
+        <div className="rounded-xl border border-border-soft bg-card px-4 py-4 shadow-sm">
+          <p className="text-xs font-medium text-muted-foreground">Last review</p>
+          <p className="mt-2 font-mono text-base font-semibold tabular-nums">
             {latest
               ? `${relShort(latest.created_at)}${latest.cost_usd != null ? ` · ${fmtCost(latest.cost_usd)}` : ""}`
               : "—"}
@@ -253,7 +256,7 @@ export default function OverviewPage({
       </div>
 
       {activeSandboxes.length > 0 && (
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 rounded-lg border border-border-soft px-3 py-1.5 text-[11px]">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 rounded-lg border border-border-soft px-3 py-1.5 text-[13px]">
           {activeSandboxes.map((s) => (
             <span key={s.id} className="inline-flex items-center gap-1.5">
               <i
@@ -263,7 +266,7 @@ export default function OverviewPage({
                 }
                 aria-hidden
               />
-              <span className="font-mono text-[10.5px]">{s.id}</span>
+              <span className="font-mono text-[12px]">{s.id}</span>
               <span className="text-muted-foreground">
                 {s.gpu ?? "CPU"}
                 {s.state === "running" && s.uptime_s !== null
@@ -273,12 +276,12 @@ export default function OverviewPage({
                   <Cooldown deadline={s.deadline} />
                 ) : null}
                 {s.attached?.session ? (
-                  <span className="font-mono text-[10.5px]">
+                  <span className="font-mono text-[12px]">
                     {" "}
                     · {s.attached.session}
                   </span>
                 ) : s.attached?.run ? (
-                  <span className="font-mono text-[10.5px]">
+                  <span className="font-mono text-[12px]">
                     {" "}
                     · {s.attached.run}
                   </span>
@@ -295,18 +298,18 @@ export default function OverviewPage({
         </div>
       )}
 
-      <div className="grid grid-cols-[1fr_300px] items-start gap-4 max-md:grid-cols-1">
+      <div className="grid grid-cols-[minmax(0,1fr)_360px] items-start gap-7 max-lg:grid-cols-1">
         <div>
           <Table>
             <TableHeader>
               <TableRow className="border-border-soft hover:bg-transparent">
-                <TableHead className="text-[11px] font-normal text-faint">Change</TableHead>
-                <TableHead className="text-[11px] font-normal text-faint">Claim</TableHead>
-                <TableHead className="text-[11px] font-normal text-faint">
+                <TableHead className="text-[13px] font-normal text-faint">Change</TableHead>
+                <TableHead className="text-[13px] font-normal text-faint">Claim</TableHead>
+                <TableHead className="text-[13px] font-normal text-faint">
                   vs {repo.default_branch}
                 </TableHead>
-                <TableHead className="text-[11px] font-normal text-faint">Last</TableHead>
-                <TableHead className="text-right text-[11px] font-normal text-faint">
+                <TableHead className="text-[13px] font-normal text-faint">Last</TableHead>
+                <TableHead className="text-right text-[13px] font-normal text-faint">
                   Cost
                 </TableHead>
               </TableRow>
@@ -330,7 +333,7 @@ export default function OverviewPage({
                         {b.pr && (
                           <Badge
                             variant="outline"
-                            className="rounded-full border-live/45 bg-live/10 font-mono text-[10px] text-live"
+                            className="rounded-full border-live/45 bg-live/10 font-mono text-[12px] text-live"
                           >
                             PR #{b.pr.number}
                           </Badge>
@@ -349,7 +352,7 @@ export default function OverviewPage({
                     <TableCell className="text-xs">
                       <StatusDot state={s.state} label={s.label} />
                     </TableCell>
-                    <TableCell className="font-mono text-[11px] text-faint">
+                    <TableCell className="font-mono text-[13px] text-faint">
                       {b.last_review
                         ? relShort(b.last_review.t)
                         : lastByBranch.has(b.name)
@@ -375,8 +378,8 @@ export default function OverviewPage({
             </TableBody>
           </Table>
 
-          <div className="mt-3 flex items-center justify-between gap-4 rounded-lg border border-border-soft px-3 py-2">
-            <p className="min-w-0 text-[11px] text-muted-foreground">
+          <div className="mt-4 flex items-center justify-between gap-4 rounded-xl border border-border-soft bg-card px-4 py-3.5">
+            <p className="min-w-0 text-[13px] text-muted-foreground">
               Connect your coding agent — it submits branches for review before
               opening PRs.
             </p>
@@ -393,17 +396,17 @@ export default function OverviewPage({
           </div>
         </div>
 
-        <div className="border-l border-border-soft pl-3.5 max-md:border-l-0 max-md:pl-0">
-          <p className="text-[10.5px] uppercase tracking-wide text-faint">
+        <div className="rounded-xl border border-border-soft bg-card p-5">
+          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
             Activity
           </p>
-          <div className="mt-1">
+          <div className="mt-3">
             {feed.map((item, i) => (
               <div
                 key={i}
-                className="flex items-baseline gap-2 border-b border-border-soft py-1.5 text-[11px] last:border-b-0"
+                className="flex items-baseline gap-3 border-b border-border-soft py-3 text-xs last:border-b-0"
               >
-                <span className="w-8 shrink-0 font-mono text-[9.5px] text-faint">
+                <span className="w-8 shrink-0 font-mono text-[11px] text-faint">
                   {relShort(item.t)}
                 </span>
                 <span className="min-w-0 text-muted-foreground">
@@ -412,7 +415,7 @@ export default function OverviewPage({
               </div>
             ))}
             {feed.length === 0 && (
-              <p className="py-2 text-[11px] text-faint">no activity</p>
+              <p className="py-2 text-[13px] text-faint">no activity</p>
             )}
           </div>
         </div>
