@@ -247,3 +247,17 @@ export interface BranchInfo {
   } | null;
   reviews_count: number;
 }
+
+// ---- GitHub connection (single-user OAuth; token stays server-side) ----
+
+export interface GithubStatus {
+  connected: boolean;
+  login: string | null;
+}
+
+export interface GithubRepo {
+  name: string; // owner/repo
+  private: boolean;
+  default_branch: string | null;
+  pushed_at: string | null;
+}

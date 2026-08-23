@@ -18,16 +18,29 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { ConnectRepoDialog } from "@/components/connect-repo-dialog";
 import { StatusDot } from "@/components/status-dot";
 import { Delta } from "@/components/atoms";
-import { getBranches, listRepos, listRuns } from "@/lib/api";
+import {
+  getBranches,
+  githubLoginUrl,
+  githubStatus,
+  isMock,
+  listRepos,
+  listRuns,
+} from "@/lib/api";
 import {
   fmtCost,
   fmtRelative,
   looksLikeSha,
   shortSha,
 } from "@/lib/format";
-import type { BranchInfo, RepoInfo, RunSummary } from "@/lib/types";
+import type {
+  BranchInfo,
+  GithubStatus,
+  RepoInfo,
+  RunSummary,
+} from "@/lib/types";
 
 function relShort(iso: string): string {
   const r = fmtRelative(iso);
@@ -44,8 +57,10 @@ export default function HomePage() {
     {},
   );
   const [query, setQuery] = useState("");
+  const [gh, setGh] = useState<GithubStatus | null>(null);
+  const [pickerOpen, setPickerOpen] = useState(false);
 
-  useEffect(() => {
+  const loadRepos = () =>
     listRepos().then((rs) => {
       setRepos(rs);
       rs.forEach((r) => {
@@ -59,6 +74,10 @@ export default function HomePage() {
           .catch(() => {});
       });
     });
+
+  useEffect(() => {
+    loadRepos();
+    githubStatus().then(setGh);
   }, []);
 
   const visible = useMemo(
@@ -95,9 +114,33 @@ export default function HomePage() {
               className="h-8 w-52 pl-8 text-[13px]"
             />
           </div>
-          <Button size="sm">Connect repo</Button>
+          {gh?.connected && (
+            <StatusDot state="ok" label={gh.login ?? "connected"} />
+          )}
+          {gh !== null && !gh.connected && !isMock && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                const url = githubLoginUrl();
+                if (url) window.location.href = url;
+              }}
+            >
+              Connect GitHub
+            </Button>
+          )}
+          <Button size="sm" onClick={() => setPickerOpen(true)}>
+            Connect repo
+          </Button>
         </div>
       </header>
+      <ConnectRepoDialog
+        open={pickerOpen}
+        onOpenChange={setPickerOpen}
+        gh={gh}
+        connectedNames={repos?.map((r) => r.name) ?? []}
+        onConnected={loadRepos}
+      />
       <main className="mx-auto w-full max-w-[1240px] flex-1 p-5">
         <div className="grid grid-cols-[1fr_300px] items-start gap-4 max-md:grid-cols-1">
           {visible === null ? (

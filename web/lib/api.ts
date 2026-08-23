@@ -13,6 +13,8 @@
 import type {
   AtlasEvent,
   BranchInfo,
+  GithubRepo,
+  GithubStatus,
   NewRunRequest,
   RepoInfo,
   Report,
@@ -565,4 +567,28 @@ export async function getTelemetry(
   } catch {
     return null;
   }
+}
+
+// ---- GitHub connection ----
+
+export async function githubStatus(): Promise<GithubStatus> {
+  if (!API) return { connected: false, login: null };
+  try {
+    return await get("/api/auth/github/status");
+  } catch {
+    return { connected: false, login: null };
+  }
+}
+
+// Full-page redirect: the login route 302s to GitHub and back.
+export function githubLoginUrl(): string | null {
+  return API ? `${API}/api/auth/github/login` : null;
+}
+
+export async function githubRepos(): Promise<GithubRepo[]> {
+  return get("/api/github/repos");
+}
+
+export async function connectRepo(name: string): Promise<RepoInfo> {
+  return post("/api/repos", { name });
 }
