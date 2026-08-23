@@ -74,3 +74,28 @@ def test_connect_repo_writes_and_merges(gh, tmp_path):
     names = [x["name"] for x in gh.get("/api/repos").json()]
     assert "acme/new-model" in names
     assert gh.post("/api/repos", json={"name": "not-a-repo"}).status_code == 422
+
+
+def test_remove_repo_persists_and_reconnect_restores(gh, tmp_path):
+    seeded = "rohitsandadi/nanoGPT"
+    dynamic = "acme/new-model"
+    assert gh.post("/api/repos", json={"name": dynamic}).status_code == 200
+
+    assert gh.delete("/api/repos", params={"name": dynamic}).json() == {
+        "ok": True, "name": dynamic,
+    }
+    names = [repo["name"] for repo in gh.get("/api/repos").json()]
+    assert dynamic not in names
+    assert not (tmp_path / "runs" / "repos.d" /
+                "acme__new-model.json").exists()
+
+    assert gh.delete("/api/repos", params={"name": seeded}).status_code == 200
+    names = [repo["name"] for repo in gh.get("/api/repos").json()]
+    assert seeded not in names
+    assert gh.get(f"/api/repos/{seeded}/evals").status_code == 404
+
+    assert gh.post("/api/repos", json={"name": seeded}).status_code == 200
+    names = [repo["name"] for repo in gh.get("/api/repos").json()]
+    assert seeded in names
+    assert not (tmp_path / "runs" / "repos.removed" /
+                "rohitsandadi__nanoGPT.json").exists()

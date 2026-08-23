@@ -4,11 +4,20 @@
 // The card grid is retired — a table scales and says more per cm².
 
 import { useMemo, useState } from "react";
-import { useQueries, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueries, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Plus, Search } from "lucide-react";
+import { Plus, Search, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -29,6 +38,7 @@ import {
   getBranches,
   githubLoginUrl,
   listRuns,
+  removeRepo,
 } from "@/lib/api";
 import {
   queryKeys,
@@ -44,6 +54,7 @@ import {
 import type {
   BranchInfo,
   RunSummary,
+  RepoInfo,
 } from "@/lib/types";
 
 function relShort(iso: string): string {
@@ -60,6 +71,21 @@ export default function HomePage() {
   const { data: ghData, isPending: ghPending } = useGithubStatusQuery();
   const gh = ghData ?? (ghPending ? null : { connected: false, login: null });
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [repoToRemove, setRepoToRemove] = useState<string | null>(null);
+  const removeMutation = useMutation({
+    mutationFn: removeRepo,
+    onSuccess: async (_, repoName) => {
+      queryClient.setQueryData<RepoInfo[]>(queryKeys.repos(), (current) =>
+        current?.filter((repo) => repo.name !== repoName),
+      );
+      queryClient.removeQueries({ queryKey: queryKeys.branches(repoName) });
+      queryClient.removeQueries({ queryKey: queryKeys.runs(repoName) });
+      setRepoToRemove(null);
+      toast(`${repoName} removed`);
+      await queryClient.invalidateQueries({ queryKey: queryKeys.repos() });
+    },
+    onError: () => toast.error("Could not remove repository"),
+  });
 
   const repoList = useMemo(() => reposData ?? [], [reposData]);
   const branchQueries = useQueries({
@@ -170,6 +196,41 @@ export default function HomePage() {
         connectedNames={repos?.map((r) => r.name) ?? []}
         onConnected={refreshRepos}
       />
+      <Dialog
+        open={repoToRemove !== null}
+        onOpenChange={(open) => {
+          if (!open && !removeMutation.isPending) setRepoToRemove(null);
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Remove repository?</DialogTitle>
+            <DialogDescription>
+              {repoToRemove} will disappear from this dashboard. Existing
+              reviews and run history will not be deleted, and you can connect
+              the repository again later.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setRepoToRemove(null)}
+              disabled={removeMutation.isPending}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                if (repoToRemove) removeMutation.mutate(repoToRemove);
+              }}
+              disabled={removeMutation.isPending}
+            >
+              {removeMutation.isPending ? "Removing…" : "Remove repository"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       <main className="mx-auto w-full max-w-[1480px] flex-1 px-8 py-8 max-md:px-4">
         <div className="mb-7 flex items-end justify-between gap-5 max-sm:flex-col max-sm:items-stretch">
           <div>
@@ -210,6 +271,9 @@ export default function HomePage() {
                   </TableHead>
                   <TableHead className="text-right text-[13px] font-normal text-faint">
                     Spend
+                  </TableHead>
+                  <TableHead className="w-12">
+                    <span className="sr-only">Actions</span>
                   </TableHead>
                 </TableRow>
               </TableHeader>
@@ -309,13 +373,28 @@ export default function HomePage() {
                       <TableCell className="text-right font-mono text-xs tabular-nums">
                         {fmtCost(spend)}
                       </TableCell>
+                      <TableCell
+                        className="text-right"
+                        onClick={(event) => event.stopPropagation()}
+                      >
+                        <Button
+                          size="icon-xs"
+                          variant="ghost"
+                          className="text-faint hover:text-destructive"
+                          aria-label={`Remove ${repo.name}`}
+                          title={`Remove ${repo.name}`}
+                          onClick={() => setRepoToRemove(repo.name)}
+                        >
+                          <Trash2 />
+                        </Button>
+                      </TableCell>
                     </TableRow>
                   );
                 })}
                 {visible.length === 0 && (
                   <TableRow className="border-border-soft hover:bg-transparent">
                     <TableCell
-                      colSpan={7}
+                      colSpan={8}
                       className="py-6 text-center text-xs text-faint"
                     >
                       no repos

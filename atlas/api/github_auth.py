@@ -160,11 +160,16 @@ def connect_repo(body: dict):
              "correctness": "token_ids_match", "overrides": [],
              "approvals": "manual", "default_branch": default_branch,
              "evals": [], "branches": []}
-    root = os.path.join(os.environ.get(ENV_RUNS_ROOT, "/runs"), "repos.d")
+    runs_root = os.environ.get(ENV_RUNS_ROOT, "/runs")
+    root = os.path.join(runs_root, "repos.d")
     os.makedirs(root, exist_ok=True)
-    path = os.path.join(root, name.replace("/", "__") + ".json")
+    filename = name.replace("/", "__") + ".json"
+    path = os.path.join(root, filename)
     with open(path, "w") as f:
         json.dump(entry, f)
+    removed_path = os.path.join(runs_root, "repos.removed", filename)
+    if os.path.isfile(removed_path):
+        os.remove(removed_path)
     try:
         import modal
         from atlas.contracts.names import VOLUME_RUNS
@@ -172,3 +177,31 @@ def connect_repo(body: dict):
     except Exception:
         pass
     return entry
+
+
+@router.delete("/repos")
+def remove_repo(name: str):
+    """Hide a connected or seeded repo without deleting its historical runs.
+
+    A tombstone suppresses bundled repos as well as repos.d entries. Connecting
+    the same repo again clears the tombstone and restores it.
+    """
+    name = name.strip()
+    if not re.fullmatch(r"[\w.-]+/[\w.-]+", name):
+        raise HTTPException(422, "name must be owner/repo")
+    runs_root = os.environ.get(ENV_RUNS_ROOT, "/runs")
+    filename = name.replace("/", "__") + ".json"
+    connected_path = os.path.join(runs_root, "repos.d", filename)
+    if os.path.isfile(connected_path):
+        os.remove(connected_path)
+    removed_root = os.path.join(runs_root, "repos.removed")
+    os.makedirs(removed_root, exist_ok=True)
+    with open(os.path.join(removed_root, filename), "w") as f:
+        json.dump({"name": name}, f)
+    try:
+        import modal
+        from atlas.contracts.names import VOLUME_RUNS
+        modal.Volume.from_name(VOLUME_RUNS).commit()
+    except Exception:
+        pass
+    return {"ok": True, "name": name}

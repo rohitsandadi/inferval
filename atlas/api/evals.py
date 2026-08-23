@@ -70,6 +70,14 @@ def _load_repo_names() -> set[str]:
                     names.add(json.load(f)["name"])
             except (OSError, ValueError, KeyError):
                 continue
+    removed_dir = os.path.join(_runs_root(), "repos.removed")
+    if os.path.isdir(removed_dir):
+        for fn in os.listdir(removed_dir):
+            try:
+                with open(os.path.join(removed_dir, fn)) as f:
+                    names.discard(json.load(f)["name"])
+            except (OSError, ValueError, KeyError):
+                continue
     return names
 
 

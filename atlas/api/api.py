@@ -179,12 +179,21 @@ def _headline_deltas(verdict) -> dict:
 def _load_repos() -> list:
     with open(os.path.join(os.path.dirname(__file__), "repos.json")) as f:
         repos = json.load(f)["repos"]
+    removed = set()
+    removed_dir = os.path.join(_runs_root(), "repos.removed")
+    if os.path.isdir(removed_dir):
+        for fn in os.listdir(removed_dir):
+            marker = _read_json(os.path.join(removed_dir, fn))
+            if marker and marker.get("name"):
+                removed.add(marker["name"])
+    repos = [repo for repo in repos if repo.get("name") not in removed]
     d = os.path.join(_runs_root(), "repos.d")  # OAuth-connected repos
     if os.path.isdir(d):
         seen = {r["name"] for r in repos}
         for fn in sorted(os.listdir(d)):
             entry = _read_json(os.path.join(d, fn))
-            if entry and entry.get("name") not in seen:
+            if (entry and entry.get("name") not in removed
+                    and entry.get("name") not in seen):
                 repos.append(entry)
     d2 = os.path.join(_runs_root(), "evals.d")  # agent/UI-created evals win
     if os.path.isdir(d2):

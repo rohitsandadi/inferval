@@ -43,6 +43,12 @@ async function post<T>(path: string, body: unknown): Promise<T> {
   return response.json();
 }
 
+async function remove<T>(path: string): Promise<T> {
+  const response = await fetch(apiUrl(path), { method: "DELETE" });
+  if (!response.ok) throw new Error(`DELETE ${path} -> ${response.status}`);
+  return response.json();
+}
+
 export async function listRepos(): Promise<RepoInfo[]> {
   return get("/api/repos");
 }
@@ -236,4 +242,10 @@ export async function githubRepos(): Promise<GithubRepo[]> {
 
 export async function connectRepo(name: string): Promise<RepoInfo> {
   return post("/api/repos", { name });
+}
+
+export async function removeRepo(
+  name: string,
+): Promise<{ ok: boolean; name: string }> {
+  return remove(`/api/repos?name=${encodeURIComponent(name)}`);
 }
