@@ -4,6 +4,10 @@
 import type { RepoInfo } from "@/lib/types";
 
 export function agentPrompt(repo: RepoInfo): string {
+  const measurement = repo.evals.length
+    ? `Every run measures ${repo.evals.join(" and ")} on`
+    : "Every run uses the configured suite on";
+
   return `You have the inferval MCP server. Before opening a PR on ${repo.name}, verify your change:
 
 1. submit_run(repo="${repo.name}", base="${repo.default_branch}", head=<your branch>)
@@ -12,6 +16,6 @@ export function agentPrompt(repo: RepoInfo): string {
    condition), fix, and re-submit. Do not open the PR on a red run.
 4. Quote the inferval verdict table in your PR body instead of a speed claim.
 
-Every run measures ${repo.evals.join(" and ")} on a paired ${repo.gpu} sandbox
+${measurement} a paired ${repo.gpu} sandbox
 with pinned image ${repo.image}; outputs must token-id match.`;
 }

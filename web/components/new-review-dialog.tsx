@@ -200,6 +200,7 @@ export function NewReviewDialog({
   const canSubmit =
     !submitMutation.isPending &&
     base.trim() !== "" &&
+    (selection !== "pick" || picked.size > 0) &&
     (mode === "check" || head.trim() !== "");
 
   const onSubmit = async () => {
@@ -262,8 +263,12 @@ export function NewReviewDialog({
               onValueChange={(v) => setSelection(v as "auto" | "all" | "pick")}
               items={{
                 auto: "Auto",
-                all: `All (${repo.evals.length})`,
-                pick: "Pick",
+                ...(repo.evals.length > 0
+                  ? {
+                      all: `All (${repo.evals.length})`,
+                      pick: "Pick",
+                    }
+                  : {}),
               }}
             >
               <SelectTrigger id="nr-evals" size="sm" className="w-full">
@@ -271,8 +276,14 @@ export function NewReviewDialog({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="auto">Auto</SelectItem>
-                <SelectItem value="all">All ({repo.evals.length})</SelectItem>
-                <SelectItem value="pick">Pick</SelectItem>
+                {repo.evals.length > 0 && (
+                  <>
+                    <SelectItem value="all">
+                      All ({repo.evals.length})
+                    </SelectItem>
+                    <SelectItem value="pick">Pick</SelectItem>
+                  </>
+                )}
               </SelectContent>
             </Select>
           </div>

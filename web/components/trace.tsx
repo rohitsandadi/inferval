@@ -6,7 +6,8 @@
 // the artifact. bench_block_done rows carry a GPU-utilization sparkline when
 // the run recorded telemetry (absent on pre-telemetry runs — silent).
 
-import { ChevronDown } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { ArrowDown, ChevronDown } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
   Collapsible,
@@ -246,25 +247,70 @@ function PhaseDurations({ events }: { events: InfervalEvent[] }) {
 
 export function Trace({ events }: { events: InfervalEvent[] }) {
   const groups = groupByPhase(events);
+  const viewportRef = useRef<HTMLDivElement>(null);
+  const previousCountRef = useRef(events.length);
+  const [following, setFollowing] = useState(true);
+
+  useEffect(() => {
+    const previousCount = previousCountRef.current;
+    previousCountRef.current = events.length;
+    if (events.length <= previousCount || !following) return;
+
+    const frame = requestAnimationFrame(() => {
+      const viewport = viewportRef.current;
+      if (!viewport) return;
+      viewport.scrollTo({ top: viewport.scrollHeight, behavior: "smooth" });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [events.length, following]);
+
+  const jumpToLatest = () => {
+    const viewport = viewportRef.current;
+    if (!viewport) return;
+    setFollowing(true);
+    viewport.scrollTo({ top: viewport.scrollHeight, behavior: "smooth" });
+  };
+
   return (
-    <div className="space-y-1">
-      <PhaseDurations events={events} />
-      {groups.map((g, gi) => (
-        <Collapsible key={`${g.phase}-${gi}`} defaultOpen>
-          <CollapsibleTrigger className="group mt-2 flex w-full items-center gap-2 text-left">
-            <span className="text-[13px] text-faint">{g.phase}</span>
-            <span className="h-px flex-1 bg-border-soft" />
-            <ChevronDown className="size-3 text-faint transition-transform group-data-[panel-open]:rotate-180" />
-          </CollapsibleTrigger>
-          <CollapsibleContent>
-            {g.events.map(({ index, event }) => (
-              <SpanRow key={index} event={event} />
-            ))}
-          </CollapsibleContent>
-        </Collapsible>
-      ))}
-      {events.length === 0 && (
-        <p className="text-xs text-faint">no events yet</p>
+    <div className="relative">
+      <div
+        ref={viewportRef}
+        onScroll={(event) => {
+          const viewport = event.currentTarget;
+          const distanceFromBottom =
+            viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight;
+          setFollowing(distanceFromBottom < 56);
+        }}
+        className="max-h-[min(68vh,760px)] space-y-1 overflow-y-auto scroll-smooth pr-2"
+      >
+        <PhaseDurations events={events} />
+        {groups.map((g, gi) => (
+          <Collapsible key={`${g.phase}-${gi}`} defaultOpen>
+            <CollapsibleTrigger className="group mt-2 flex w-full items-center gap-2 text-left">
+              <span className="text-[13px] text-faint">{g.phase}</span>
+              <span className="h-px flex-1 bg-border-soft" />
+              <ChevronDown className="size-3 text-faint transition-transform group-data-[panel-open]:rotate-180" />
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              {g.events.map(({ index, event }) => (
+                <SpanRow key={index} event={event} />
+              ))}
+            </CollapsibleContent>
+          </Collapsible>
+        ))}
+        {events.length === 0 && (
+          <p className="text-xs text-faint">no events yet</p>
+        )}
+      </div>
+      {!following && events.length > 0 && (
+        <button
+          type="button"
+          onClick={jumpToLatest}
+          className="absolute bottom-3 right-4 inline-flex h-8 items-center gap-1.5 rounded-lg border border-border bg-popover px-3 text-xs font-medium shadow-lg hover:bg-muted"
+        >
+          <ArrowDown className="size-3.5" />
+          Latest
+        </button>
       )}
     </div>
   );

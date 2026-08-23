@@ -24,6 +24,65 @@ const API = (process.env.NEXT_PUBLIC_INFERVAL_API || DEFAULT_API).replace(
   "",
 );
 
+// These legacy evals remain available to the backend, but are intentionally
+// hidden from every frontend response surface.
+const HIDDEN_EVALS = new Set(["generate_short", "generate_long"]);
+
+function isVisibleEval(name: unknown): boolean {
+  return typeof name !== "string" || !HIDDEN_EVALS.has(name);
+}
+
+function hideEvalsFromEvent(event: InfervalEvent): InfervalEvent | null {
+  if (!isVisibleEval(event.detail.eval)) return null;
+
+  const params = event.detail.params;
+  if (
+    params &&
+    typeof params === "object" &&
+    "eval" in params &&
+    !isVisibleEval((params as Record<string, unknown>).eval)
+  ) {
+    return null;
+  }
+
+  if (!Array.isArray(event.detail.evals)) return event;
+
+  return {
+    ...event,
+    detail: {
+      ...event.detail,
+      evals: event.detail.evals.filter(isVisibleEval),
+    },
+  };
+}
+
+function hideEvalsFromEvents(events: InfervalEvent[]): InfervalEvent[] {
+  return events.flatMap((event) => {
+    const visible = hideEvalsFromEvent(event);
+    return visible ? [visible] : [];
+  });
+}
+
+function hideEvalsFromRun(detail: RunDetail): RunDetail {
+  return {
+    ...detail,
+    spec: {
+      ...detail.spec,
+      evals: detail.spec.evals.filter((evalSpec) =>
+        isVisibleEval(evalSpec.name),
+      ),
+    },
+    verdict: detail.verdict
+      ? {
+          ...detail.verdict,
+          checks: detail.verdict.checks.filter((check) =>
+            isVisibleEval(check.eval),
+          ),
+        }
+      : null,
+  };
+}
+
 function apiUrl(path: string): string {
   return `${API}${path}`;
 }
@@ -51,7 +110,11 @@ async function remove<T>(path: string): Promise<T> {
 }
 
 export async function listRepos(): Promise<RepoInfo[]> {
-  return get("/api/repos");
+  const repos = await get<RepoInfo[]>("/api/repos");
+  return repos.map((repo) => ({
+    ...repo,
+    evals: repo.evals.filter(isVisibleEval),
+  }));
 }
 
 export async function getRepo(name: string): Promise<RepoInfo | undefined> {
@@ -72,7 +135,8 @@ export async function listRuns(repo: string): Promise<RunSummary[]> {
 }
 
 export async function getRun(id: string): Promise<RunDetail> {
-  return get(`/api/runs/${encodeURIComponent(id)}`);
+  const detail = await get<RunDetail>(`/api/runs/${encodeURIComponent(id)}`);
+  return hideEvalsFromRun(detail);
 }
 
 export async function getEvents(
@@ -85,14 +149,42 @@ export async function getEvents(
   );
   if (!response.ok) throw new Error(`GET events -> ${response.status}`);
   const text = await response.text();
-  return text
+  const events = text
     .split("\n")
     .filter((line) => line.trim())
     .map((line) => JSON.parse(line) as InfervalEvent);
+  return hideEvalsFromEvents(events);
 }
 
 export async function getReport(id: string): Promise<Report | null> {
-  return get(`/api/runs/${encodeURIComponent(id)}/report`);
+  const report = await get<Report | null>(
+    `/api/runs/${encodeURIComponent(id)}/report`,
+  );
+  if (!report) return null;
+
+  return {
+    ...report,
+    verdict: {
+      ...report.verdict,
+      checks: report.verdict.checks.filter((check) =>
+        isVisibleEval(check.eval),
+      ),
+    },
+    investigation: report.investigation
+      ? {
+          ...report.investigation,
+          plan: report.investigation.plan
+            ? {
+                ...report.investigation.plan,
+                evals: report.investigation.plan.evals?.filter(isVisibleEval),
+              }
+            : undefined,
+          proposals: report.investigation.proposals.filter((proposal) =>
+            isVisibleEval(proposal.params.eval),
+          ),
+        }
+      : undefined,
+  };
 }
 
 export async function submitRun(req: NewRunRequest): Promise<{ run: string }> {
@@ -136,7 +228,20 @@ export async function createSession(
 }
 
 export async function getSession(id: string): Promise<SessionDetail> {
-  return get(`/api/sessions/${encodeURIComponent(id)}`);
+  const detail = await get<SessionDetail>(
+    `/api/sessions/${encodeURIComponent(id)}`,
+  );
+  return {
+    ...detail,
+    triage: detail.triage?.map((annotation) => ({
+      ...annotation,
+      coverage:
+        annotation.coverage === "gap"
+          ? "gap"
+          : annotation.coverage.filter(isVisibleEval),
+    })) ?? null,
+    drafts: detail.drafts.filter((draft) => isVisibleEval(draft.name)),
+  };
 }
 
 export async function getSessionDiff(id: string): Promise<string | null> {
@@ -177,10 +282,11 @@ export async function getSessionEvents(
     throw new Error(`GET session events -> ${response.status}`);
   }
   const text = await response.text();
-  return text
+  const events = text
     .split("\n")
     .filter((line) => line.trim())
     .map((line) => JSON.parse(line) as InfervalEvent);
+  return hideEvalsFromEvents(events);
 }
 
 export async function postSessionMessage(
