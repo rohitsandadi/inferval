@@ -1,17 +1,18 @@
 "use client";
 
-// The session pane (wireframe-v3 screens 1–3): the event feed rendered as
-// cards — user/agent messages, collapsed thinking, triage, env_decision,
-// sandbox act-chips, eval drafts (Approve/Deny local-optimistic; no server
-// route yet), test results, review_submitted, errors — over a composer.
-// Unknown kinds render as plain chips; nothing breaks.
+// The session pane (wireframe-v3 screens 1–3): a background-worker surface.
+// "Review this PR" opens one worker turn; its artifacts stream in as cards —
+// review_requested, triage, collapsed thinking, env_decision, sandbox
+// act-chips, the proposed scoped eval (Keep in suite), test results,
+// review_submitted, errors. Unknown kinds render as plain chips; nothing
+// breaks.
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { StatusDot, verdictDot } from "@/components/status-dot";
 import { CoverageChip, RiskTag } from "@/components/diff-view";
+import { useCreateEvalMutation } from "@/lib/queries";
 import { fmtClock } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { InfervalEvent, Annotation, EvalDraft, VerdictKind } from "@/lib/types";
@@ -136,20 +137,27 @@ function EnvDecisionCard({ e }: { e: InfervalEvent }) {
   );
 }
 
+// The worker's one scoped eval for this PR. It runs with the review either
+// way; "Keep in suite" persists it to the repo's eval store (origin "pr:<N>").
+// Not keeping is the default, so there is no deny action.
 function EvalDraftCard({
   e,
-  decision,
-  onDecide,
+  repoName,
+  prNumber,
 }: {
   e: InfervalEvent;
-  decision?: "approved" | "denied";
-  onDecide: (id: string, d: "approved" | "denied") => void;
+  repoName: string;
+  prNumber: number | null;
 }) {
   const d = e.detail as unknown as EvalDraft;
-  const status = decision ?? d.status;
-  const settled = status !== "proposed";
+  const keep = useCreateEvalMutation(repoName);
+  const kept = keep.isSuccess;
   return (
-    <CardShell kind={`eval draft · ${status}`} time={`${d.id} · from ${d.origin}`} emphasized={!settled}>
+    <CardShell
+      kind="eval_draft · proposed for this PR"
+      time={`${d.id} · from ${d.origin}`}
+      emphasized={!kept}
+    >
       <div className="mt-1 font-mono text-[13px]">{d.name}</div>
       <div className="mt-0.5 truncate font-mono text-[11px] text-faint">
         {d.cmd}
@@ -169,28 +177,34 @@ function EvalDraftCard({
       </div>
       <div className="mt-2 flex items-center justify-between gap-2 border-t border-border-soft pt-2">
         <span className="text-[12px] text-faint">
-          {settled
-            ? status === "approved"
-              ? "joins the suite"
-              : "not added"
-            : "joins the suite on approve"}
+          {kept ? "in the suite" : "runs with this review; expires unless kept"}
         </span>
-        {!settled && (
-          <span className="flex gap-1.5">
-            <Button
-              size="xs"
-              variant="outline"
-              className="text-bad"
-              onClick={() => onDecide(d.id, "denied")}
-            >
-              Deny
-            </Button>
-            <Button size="xs" onClick={() => onDecide(d.id, "approved")}>
-              Approve
-            </Button>
+        {kept ? (
+          <span className="font-mono text-[12px] text-muted-foreground">
+            kept
           </span>
+        ) : (
+          <Button
+            size="xs"
+            disabled={keep.isPending}
+            onClick={() =>
+              keep.mutate({
+                name: d.name,
+                cmd: d.cmd,
+                checks: d.checks,
+                origin: prNumber != null ? `pr:${prNumber}` : undefined,
+              })
+            }
+          >
+            Keep in suite
+          </Button>
         )}
       </div>
+      {keep.error && (
+        <p className="mt-1 break-words text-[12px] text-bad">
+          {keep.error.message}
+        </p>
+      )}
     </CardShell>
   );
 }
@@ -240,6 +254,7 @@ function ReviewSubmittedCard({
     ? verdictDot(linked.verdict, linked.status)
     : { state: "busy" as const, label: "Running" };
   const evals = e.detail.evals;
+  const scopedEval = str(e.detail.scoped_eval);
   return (
     <CardShell kind="review_submitted" time={hms(e.t)}>
       <div className="mt-1 flex items-center gap-2">
@@ -253,7 +268,13 @@ function ReviewSubmittedCard({
       </div>
       <div className="mt-2 flex items-center justify-between gap-2 border-t border-border-soft pt-2">
         <span className="text-[12px] text-faint">
-          verdict is policy, not the session
+          {scopedEval ? (
+            <>
+              + scoped eval <span className="font-mono">{scopedEval}</span>
+            </>
+          ) : (
+            "verdict is policy, not the session"
+          )}
         </span>
         <Button
           size="xs"
@@ -334,15 +355,21 @@ export function SessionPane({
   events,
   owner,
   name,
+  repoName,
+  pr,
+  branch,
   linkedRuns,
   working,
   workingSince,
-  onSend,
-  sending,
+  onReview,
+  reviewPending,
 }: {
   events: InfervalEvent[];
   owner: string;
   name: string;
+  repoName: string;
+  pr: { number: number; title: string } | null;
+  branch: string | null;
   // review_submitted run id -> its fetched state (null until loaded)
   linkedRuns: Record<
     string,
@@ -350,14 +377,10 @@ export function SessionPane({
   >;
   working: boolean;
   workingSince: string | null;
-  onSend: (text: string) => Promise<void>;
-  sending: boolean;
+  onReview: () => void;
+  reviewPending: boolean;
 }) {
-  const [text, setText] = useState("");
   const scrollRef = useRef<HTMLDivElement | null>(null);
-  const [draftDecisions, setDraftDecisions] = useState<
-    Record<string, "approved" | "denied">
-  >({});
 
   const blocks = useMemo(() => toBlocks(events), [events]);
 
@@ -378,12 +401,41 @@ export function SessionPane({
     if (el) el.scrollTop = el.scrollHeight;
   }, [events.length, working]);
 
-  const send = async () => {
-    const t = text.trim();
-    if (!t || sending) return;
-    setText("");
-    await onSend(t);
-  };
+  if (events.length === 0) {
+    return (
+      <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-2.5 px-5 text-center">
+        {pr ? (
+          <div>
+            <p className="text-[14px] font-medium">{pr.title}</p>
+            <p className="mt-0.5 font-mono text-[12px] text-faint">
+              PR #{pr.number}
+            </p>
+          </div>
+        ) : branch ? (
+          <p className="font-mono text-[13px]">{branch}</p>
+        ) : (
+          <p className="text-[12px] text-faint">
+            no PR or branch attached — nothing to review
+          </p>
+        )}
+        {(pr || branch) && (
+          <>
+            <Button onClick={onReview} disabled={reviewPending || working}>
+              {reviewPending || working
+                ? "Review running"
+                : pr
+                  ? "Review this PR"
+                  : "Review this branch"}
+            </Button>
+            <p className="max-w-[36ch] text-[12px] text-muted-foreground">
+              Triages the diff, checks eval coverage, may propose one scoped
+              eval, submits the review.
+            </p>
+          </>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -414,6 +466,13 @@ export function SessionPane({
                   {str(e.detail.text)}
                 </p>
               );
+            case "review_requested":
+              return (
+                <ActChip key={i} k="review_requested">
+                  PR #{str(e.detail.pr) || str(pr?.number)} · turn{" "}
+                  {str(e.detail.turn)}
+                </ActChip>
+              );
             case "triage":
               return <TriageCard key={i} e={e} />;
             case "env_decision":
@@ -423,10 +482,8 @@ export function SessionPane({
                 <EvalDraftCard
                   key={i}
                   e={e}
-                  decision={draftDecisions[str(e.detail.id)]}
-                  onDecide={(id, d) =>
-                    setDraftDecisions((m) => ({ ...m, [id]: d }))
-                  }
+                  repoName={repoName}
+                  prNumber={pr?.number ?? null}
                 />
               );
             case "sandbox_proposed":
@@ -495,18 +552,6 @@ export function SessionPane({
           }
         })}
         {working && workingSince && <WorkingIndicator since={workingSince} />}
-      </div>
-      <div className="border-t border-border-soft p-2.5">
-        <Input
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") send();
-          }}
-          disabled={sending}
-          placeholder="Message the session…"
-          className="h-10 text-sm"
-        />
       </div>
     </div>
   );

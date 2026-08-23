@@ -6,13 +6,8 @@
 // load-bearing structure; after a review, verdict chips land back on the
 // annotated lines.
 
-import { use, useCallback, useEffect, useMemo, useState } from "react";
-import {
-  useMutation,
-  useQueries,
-  useQuery,
-  useQueryClient,
-} from "@tanstack/react-query";
+import { use, useEffect, useMemo, useState } from "react";
+import { useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { ListChecks } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -27,14 +22,11 @@ import {
 } from "@/components/diff-view";
 import { SessionPane } from "@/components/session-pane";
 import { useRepoShell } from "@/components/repo-shell";
-import {
-  fetchPrDiffFromGitHub,
-  getRun,
-  postSessionMessage,
-} from "@/lib/api";
+import { fetchPrDiffFromGitHub, getRun } from "@/lib/api";
 import {
   queryKeys,
   useReportQuery,
+  useReviewSessionMutation,
   useSessionDiffQuery,
   useSessionEventsQuery,
   useSessionQuery,
@@ -199,18 +191,19 @@ export default function SessionPage({
   const file =
     files.find((f) => f.path === activeFile) ?? files[0] ?? null;
 
-  // working: a user_message with no turn_done after it
+  // working: an open worker turn — user_message or review_requested with no
+  // turn_done/error after it (worker turns carry no user_message)
   const { working, workingSince } = useMemo(() => {
-    let lastUser = -1;
-    let lastUserT: string | null = null;
-    let lastDone = -1;
+    let lastOpen = -1;
+    let lastOpenT: string | null = null;
+    let lastClose = -1;
     events.forEach((e, i) => {
-      if (e.kind === "user_message") {
-        lastUser = i;
-        lastUserT = e.t;
-      } else if (e.kind === "turn_done") lastDone = i;
+      if (e.kind === "user_message" || e.kind === "review_requested") {
+        lastOpen = i;
+        lastOpenT = e.t;
+      } else if (e.kind === "turn_done" || e.kind === "error") lastClose = i;
     });
-    return { working: lastUser > lastDone, workingSince: lastUserT };
+    return { working: lastOpen > lastClose, workingSince: lastOpenT };
   }, [events]);
 
   // newest done linked run drives the post-review state
@@ -301,21 +294,7 @@ export default function SessionPage({
     return () => setTopbarRight(null);
   }, [setTopbarRight, id, working]);
 
-  const sendMutation = useMutation({
-    mutationFn: (text: string) => postSessionMessage(id, text),
-    onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: queryKeys.sessionEvents(id) }),
-        queryClient.invalidateQueries({ queryKey: queryKeys.session(id) }),
-      ]);
-    },
-  });
-  const onSend = useCallback(
-    async (text: string) => {
-      await sendMutation.mutateAsync(text);
-    },
-    [sendMutation],
-  );
+  const reviewMutation = useReviewSessionMutation(id, repoName);
 
   if (detail === null) {
     return (
@@ -623,20 +602,38 @@ export default function SessionPage({
         <div className="flex w-[330px] shrink-0 flex-col border-l border-border-soft max-md:w-full max-md:border-l-0 max-md:border-t">
           <div className="flex items-center justify-between gap-2 border-b border-border-soft px-3 py-2">
             <span className="text-[13px] font-medium">Session</span>
-            <span className="font-mono text-[12px] text-faint">
-              {id}
-              {pr ? ` · PR #${pr.number}` : ""}
+            <span className="flex items-center gap-2">
+              <span className="font-mono text-[12px] text-faint">
+                {id}
+                {pr ? ` · PR #${pr.number}` : ""}
+              </span>
+              {(pr || detail.branch) && (
+                <Button
+                  size="xs"
+                  onClick={() => reviewMutation.mutate()}
+                  disabled={working || reviewMutation.isPending}
+                >
+                  {working || reviewMutation.isPending
+                    ? "Review running"
+                    : pr
+                      ? "Review this PR"
+                      : "Review this branch"}
+                </Button>
+              )}
             </span>
           </div>
           <SessionPane
             events={events}
             owner={owner}
             name={name}
+            repoName={repoName}
+            pr={pr}
+            branch={detail.branch}
             linkedRuns={linkedRuns}
             working={working}
             workingSince={workingSince}
-            onSend={onSend}
-              sending={sendMutation.isPending}
+            onReview={() => reviewMutation.mutate()}
+            reviewPending={reviewMutation.isPending}
           />
         </div>
       </div>

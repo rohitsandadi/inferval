@@ -100,6 +100,8 @@ export function statusFromEvents(events: InfervalEvent[]): RunStatus {
     } else if (e.kind === "report_ready" || e.kind === "terminated") {
       status = "done";
     } else if (sawVerdict && (e.tier === "agent" || e.tier === "human")) {
+      // tier-based, so review_requested (tier "human", worker-opened turn)
+      // counts exactly like user_message: in progress until turn_done
       status = "investigating";
     }
   }

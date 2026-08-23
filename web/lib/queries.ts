@@ -19,6 +19,7 @@ import {
   listRuns,
   listSandboxes,
   listSessions,
+  reviewSession,
 } from "@/lib/api";
 import { statusFromEvents } from "@/lib/phases";
 import type { InfervalEvent, StoredEval } from "@/lib/types";
@@ -159,6 +160,17 @@ export function useSessionEventsQuery(id: string) {
     },
     enabled: Boolean(id),
     refetchInterval: 2_000,
+  });
+}
+
+export function useReviewSessionMutation(id: string, repo: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => reviewSession(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.sessionEvents(id) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.sessions(repo) });
+    },
   });
 }
 

@@ -190,6 +190,12 @@ export async function postSessionMessage(
   return post(`/api/sessions/${encodeURIComponent(id)}/messages`, { text });
 }
 
+// One background worker turn on an existing session; the artifacts land in the
+// session event stream. 422 when the session has no PR/branch attached.
+export async function reviewSession(id: string): Promise<{ session: string }> {
+  return post(`/api/sessions/${encodeURIComponent(id)}/review`, {});
+}
+
 export async function listSandboxes(repo: string): Promise<SandboxInfo[]> {
   return get(`/api/repos/${encodeURIComponent(repo)}/sandboxes`);
 }
