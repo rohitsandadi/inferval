@@ -1,0 +1,28 @@
+{
+ "session": "c_1b0e44d7",
+ "repo": "rohitsandadi/nanoGPT",
+ "pr": {
+  "number": 2,
+  "title": "Use inference-mode tensors in generate()",
+  "url": "https://github.com/rohitsandadi/nanoGPT/pull/2",
+  "body": "minor speedup from inference-mode tensors; outputs identical.",
+  "head": "5e7d20aa",
+  "base": "atlas-base"
+ },
+ "branch": "opt-allocation",
+ "triage": [
+  {
+   "id": "a1",
+   "path": "model.py",
+   "start_line": 318,
+   "end_line": 319,
+   "risk": "perf",
+   "note": "inference-mode tensors change allocator behavior in the decode loop",
+   "coverage": [
+    "generate_short"
+   ]
+  }
+ ],
+ "drafts": [],
+ "status": "created"
+}

@@ -46,16 +46,28 @@ function parseAbsolute(raw: string): Record<string, string> | undefined {
   return { [m[1]]: `${m[2]}${m[3]}` };
 }
 
+// Gap-driven entry (wireframe-v3 screen 6): the dialog opens prefilled from a
+// triage annotation's draft; the sub-line carries the provenance.
+export interface EvalPrefill {
+  name?: string;
+  cmd?: string;
+  checks?: Record<string, string>;
+  est_gpu_seconds?: number;
+  provenance?: string; // e.g. "Prefilled from gap a2 · PR #1 · drafted by session c_7f3a2b91"
+}
+
 export function NewEvalDialog({
   repo,
   open,
   onOpenChange,
   onCreate,
+  prefill,
 }: {
   repo: RepoInfo;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onCreate: (spec: EvalSpec) => void;
+  prefill?: EvalPrefill | null;
 }) {
   const [name, setName] = useState("");
   const [gpu, setGpu] = useState(repo.gpu);
@@ -68,15 +80,22 @@ export function NewEvalDialog({
 
   useEffect(() => {
     if (!open) return;
-    setName("");
+    setName(prefill?.name ?? "");
     setGpu(repo.gpu);
-    setCmd("");
-    setChecks([
-      { metric: "tokens_per_s", threshold: "-10%" },
-      { metric: "latency_ms_p95", threshold: "+15%" },
-    ]);
+    setCmd(prefill?.cmd ?? "");
+    setChecks(
+      prefill?.checks && Object.keys(prefill.checks).length > 0
+        ? Object.entries(prefill.checks).map(([metric, threshold]) => ({
+            metric,
+            threshold,
+          }))
+        : [
+            { metric: "tokens_per_s", threshold: "-10%" },
+            { metric: "latency_ms_p95", threshold: "+15%" },
+          ],
+    );
     setAbsolute("");
-  }, [open, repo.gpu]);
+  }, [open, repo.gpu, prefill]);
 
   const canCreate =
     name.trim() !== "" &&
@@ -102,7 +121,8 @@ export function NewEvalDialog({
         <DialogHeader>
           <DialogTitle>New eval</DialogTitle>
           <DialogDescription>
-            A named scenario plus the thresholds it must hold.
+            {prefill?.provenance ??
+              "A named scenario plus the thresholds it must hold."}
           </DialogDescription>
         </DialogHeader>
 
@@ -231,6 +251,14 @@ export function NewEvalDialog({
             />
           </div>
         </div>
+
+        {prefill?.est_gpu_seconds !== undefined && (
+          <p className="font-mono text-[10px] text-faint">
+            est_gpu_seconds {prefill.est_gpu_seconds} · adds ~$
+            {Math.max(0.01, prefill.est_gpu_seconds * (1.1 / 3600)).toFixed(2)}{" "}
+            per review
+          </p>
+        )}
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>

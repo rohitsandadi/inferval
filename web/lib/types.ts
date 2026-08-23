@@ -160,6 +160,70 @@ export interface NewRunRequest {
   claim?: string;
 }
 
+// ---- sessions + sandboxes (v3 endpoints; shapes mirror atlas/api) ----
+
+export interface SessionSummary {
+  session: string;
+  pr: { number: number; title: string; url: string } | null;
+  branch: string | null;
+  created_at: string;
+  status: string;
+}
+
+export interface SessionDetail {
+  session: string;
+  repo: string;
+  pr: {
+    number: number;
+    title: string;
+    url: string;
+    body: string;
+    head: string;
+    base: string;
+  } | null;
+  branch: string | null;
+  triage: Annotation[] | null;
+  drafts: EvalDraft[];
+  status: string;
+}
+
+export interface Annotation {
+  id: string;
+  path: string;
+  start_line: number;
+  end_line: number;
+  risk: "perf" | "correctness" | "memory" | "none";
+  note: string;
+  coverage: string[] | "gap";
+}
+
+export interface EvalDraft {
+  id: string;
+  origin: string;
+  name: string;
+  cmd: string;
+  checks: Record<string, string>;
+  est_gpu_seconds: number;
+  status: string;
+}
+
+export interface SandboxInfo {
+  id: string;
+  gpu: string | null;
+  state: "running" | "cooldown" | "terminated";
+  created_at: string | null;
+  deadline: number | null; // epoch seconds
+  attached: { run?: string; session?: string } | null;
+  uptime_s: number | null;
+}
+
+export interface Telemetry {
+  interval_s: number;
+  util_gpu: number[];
+  mem_mb: number[];
+  power_w: number[];
+}
+
 // ---- branches endpoint (GET /api/repos/{name}/branches?base=<ref>) ----
 
 export interface BranchPR {

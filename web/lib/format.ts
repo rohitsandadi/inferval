@@ -23,6 +23,13 @@ export function fmtCost(usd: number | null | undefined): string {
   return `$${usd.toFixed(2)}`;
 }
 
+// 261 -> "4:21" (uptimes, countdowns, wall clocks)
+export function fmtClock(s: number | null | undefined): string {
+  if (s === null || s === undefined) return "—";
+  const t = Math.max(0, Math.round(s));
+  return `${Math.floor(t / 60)}:${String(t % 60).padStart(2, "0")}`;
+}
+
 export function fmtDuration(s: number | null | undefined): string {
   if (s === null || s === undefined) return "—";
   if (s < 60) return `${Math.round(s)}s`;

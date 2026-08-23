@@ -1,0 +1,61 @@
+{
+ "session": "c_7f3a2b91",
+ "repo": "rohitsandadi/nanoGPT",
+ "pr": {
+  "number": 1,
+  "title": "Optimize generation: host-side sampling with pinned staging",
+  "url": "https://github.com/rohitsandadi/nanoGPT/pull/1",
+  "body": "Optimize generation: host-side sampling with pinned staging (\"~2x faster generation\"). Avoids device RNG divergence across GPU architectures, removes the sampling kernel launch from the hot loop, and adds a numerical stability guard. Outputs are bit-identical.",
+  "head": "9c2b11d0",
+  "base": "atlas-base"
+ },
+ "branch": "opt-sampling",
+ "triage": [
+  {
+   "id": "a1",
+   "path": "model.py",
+   "start_line": 328,
+   "end_line": 328,
+   "risk": "perf",
+   "note": "per-token DtoH transfer in the hot loop",
+   "coverage": [
+    "generate_short",
+    "generate_long"
+   ]
+  },
+  {
+   "id": "a2",
+   "path": "model.py",
+   "start_line": 329,
+   "end_line": 330,
+   "risk": "perf",
+   "note": "isfinite().all().item() forces a full device sync every generated token",
+   "coverage": "gap"
+  },
+  {
+   "id": "a3",
+   "path": "model.py",
+   "start_line": 331,
+   "end_line": 331,
+   "risk": "correctness",
+   "note": "host RNG replaces device RNG",
+   "coverage": [
+    "token_ids_match"
+   ]
+  }
+ ],
+ "drafts": [
+  {
+   "id": "d1",
+   "origin": "a2",
+   "name": "sample_step",
+   "cmd": "bench.py --eval sample_step --tokens 64 --batch 1 --repeats 20",
+   "checks": {
+    "latency_ms_p95": "+15%"
+   },
+   "est_gpu_seconds": 20,
+   "status": "proposed"
+  }
+ ],
+ "status": "active"
+}

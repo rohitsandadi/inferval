@@ -1,9 +1,12 @@
 "use client";
 
-// Trace tab (wireframe screen 10): rows grouped under collapsible lifecycle
-// phases; tier badges (system neutral / policy amber / agent blue); evidence
-// refs link to the artifact.
+// Trace tab (wireframe-v3 screen 5): phase-duration bars from event
+// timestamps, then rows grouped under collapsible lifecycle phases; tier
+// badges (system neutral / policy amber / agent blue); evidence refs link to
+// the artifact. bench_block_done rows carry a GPU-utilization sparkline when
+// the run recorded telemetry (absent on pre-telemetry runs — silent).
 
+import { useEffect, useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -11,11 +14,11 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { artifactUrl } from "@/lib/api";
+import { artifactUrl, blockTelemetryFile, getTelemetry } from "@/lib/api";
 import { groupByPhase } from "@/lib/phases";
-import { fmtTime } from "@/lib/format";
+import { fmtClock, fmtTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import type { AtlasEvent, Tier } from "@/lib/types";
+import type { AtlasEvent, Telemetry, Tier } from "@/lib/types";
 
 const tierStyles: Record<Tier, string> = {
   system: "border-border text-muted-foreground",
@@ -96,30 +99,171 @@ function summarize(e: AtlasEvent): string {
   }
 }
 
+// ---- telemetry sparklines (per bench block) --------------------------------
+
+// One fetch per (run, block) for the lifetime of the page; polling re-renders
+// must not refetch, and absence (null) is cached too.
+const teleCache = new Map<string, Promise<Telemetry | null>>();
+
+function fetchBlockTelemetry(
+  runId: string,
+  blockFile: string,
+): Promise<Telemetry | null> {
+  const key = `${runId}:${blockFile}`;
+  let p = teleCache.get(key);
+  if (!p) {
+    p = getTelemetry(runId, blockFile).catch(() => null);
+    teleCache.set(key, p);
+  }
+  return p;
+}
+
+const SPARK_MAX = 160; // samples drawn; longer series are stride-sampled
+
+function Sparkline({ tele }: { tele: Telemetry }) {
+  const raw = tele.util_gpu;
+  const stride = Math.max(1, Math.ceil(raw.length / SPARK_MAX));
+  const vals = raw.filter((_, i) => i % stride === 0);
+  const bw = 2;
+  const gap = 1;
+  const h = 26;
+  const w = vals.length * (bw + gap) - gap;
+  const secs = Math.round(raw.length * tele.interval_s);
+  const mean = raw.length
+    ? Math.round(raw.reduce((a, b) => a + b, 0) / raw.length)
+    : 0;
+  const mem = tele.mem_mb.length ? Math.round(Math.max(...tele.mem_mb)) : null;
+  return (
+    <div className="mb-1 ml-[76px] flex flex-wrap items-center gap-3">
+      <svg
+        width={w}
+        height={h}
+        viewBox={`0 0 ${w} ${h}`}
+        fill="rgba(82,168,255,0.5)"
+        role="img"
+        aria-label="GPU utilization, 1s samples"
+        className="block"
+      >
+        {vals.map((v, i) => {
+          const bh = Math.max(1, (h * v) / 100);
+          return (
+            <rect
+              key={i}
+              x={i * (bw + gap)}
+              y={h - bh}
+              width={bw}
+              height={bh}
+            />
+          );
+        })}
+      </svg>
+      <span className="whitespace-nowrap font-mono text-[10px] text-faint">
+        {secs}s · util x̄ {mean}%{mem !== null ? ` · ${mem} MB` : ""}
+      </span>
+    </div>
+  );
+}
+
+function BlockTelemetry({ event }: { event: AtlasEvent }) {
+  const [tele, setTele] = useState<Telemetry | null>(null);
+  const file = blockTelemetryFile(event.detail);
+  useEffect(() => {
+    let alive = true;
+    fetchBlockTelemetry(event.run, file).then((t) => {
+      if (alive) setTele(t);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [event.run, file]);
+  if (!tele || tele.util_gpu.length === 0) return null;
+  return <Sparkline tele={tele} />;
+}
+
 function SpanRow({ event }: { event: AtlasEvent }) {
   const runId = event.run;
+  const isBench = event.kind === "bench_block_done" && !event.detail.profile;
   return (
-    <div className="ml-1 flex flex-wrap items-baseline gap-x-2.5 gap-y-1 border-l border-border-soft py-1.5 pl-2.5">
-      <span className="w-14 shrink-0 font-mono text-[10px] tabular-nums text-faint">
-        {fmtTime(event.t)}
-      </span>
-      <TierBadge tier={event.tier} />
-      <code className="font-mono text-[11px] text-foreground/90">
-        {event.kind}
-      </code>
-      <span className="min-w-0 text-xs text-muted-foreground">
-        {summarize(event)}
-      </span>
-      {event.refs?.map((r) => (
-        <a
-          key={r}
-          href={artifactUrl(runId, r) ?? `#artifact-${encodeURIComponent(r)}`}
-          title={`evidence artifact: ${r}`}
-          className="font-mono text-[10.5px] text-live hover:underline"
-        >
-          {r}
-        </a>
-      ))}
+    <>
+      <div className="ml-1 flex flex-wrap items-baseline gap-x-2.5 gap-y-1 border-l border-border-soft py-1.5 pl-2.5">
+        <span className="w-14 shrink-0 font-mono text-[10px] tabular-nums text-faint">
+          {fmtTime(event.t)}
+        </span>
+        <TierBadge tier={event.tier} />
+        <code className="font-mono text-[11px] text-foreground/90">
+          {event.kind}
+        </code>
+        <span className="min-w-0 text-xs text-muted-foreground">
+          {summarize(event)}
+        </span>
+        {event.refs?.map((r) => (
+          <a
+            key={r}
+            href={artifactUrl(runId, r) ?? `#artifact-${encodeURIComponent(r)}`}
+            title={`evidence artifact: ${r}`}
+            className="font-mono text-[10.5px] text-live hover:underline"
+          >
+            {r}
+          </a>
+        ))}
+      </div>
+      {isBench && <BlockTelemetry event={event} />}
+    </>
+  );
+}
+
+// ---- phase-duration bars ---------------------------------------------------
+
+interface PhaseBar {
+  label: string;
+  seconds: number;
+}
+
+function phaseBars(events: AtlasEvent[]): PhaseBar[] {
+  const groups = groupByPhase(events);
+  const bars: PhaseBar[] = [];
+  for (let i = 0; i < groups.length; i++) {
+    const start = new Date(groups[i].events[0].event.t).getTime();
+    const next =
+      i + 1 < groups.length
+        ? new Date(groups[i + 1].events[0].event.t).getTime()
+        : new Date(
+            groups[i].events[groups[i].events.length - 1].event.t,
+          ).getTime();
+    const seconds = Math.max(0, Math.round((next - start) / 1000));
+    const prev = bars.find((b) => b.label === groups[i].phase);
+    if (prev) prev.seconds += seconds;
+    else bars.push({ label: groups[i].phase, seconds });
+  }
+  return bars;
+}
+
+function PhaseDurations({ events }: { events: AtlasEvent[] }) {
+  const bars = phaseBars(events);
+  const max = Math.max(1, ...bars.map((b) => b.seconds));
+  if (bars.length < 2) return null;
+  return (
+    <div className="mb-3">
+      <p className="text-[11px] text-faint">Phase durations</p>
+      <div className="mt-1.5 max-w-[560px]">
+        {bars.map((b) => (
+          <div
+            key={b.label}
+            className="grid grid-cols-[88px_1fr_56px] items-center gap-2.5 py-0.5"
+          >
+            <span className="text-[11px] text-muted-foreground">{b.label}</span>
+            <span className="min-w-0">
+              <span
+                className="block h-[7px] min-w-[2px] rounded-[2px] bg-[#3F3F3F]"
+                style={{ width: `${Math.max(0.5, (b.seconds / max) * 100)}%` }}
+              />
+            </span>
+            <span className="text-right font-mono text-[10px] tabular-nums text-faint">
+              {b.seconds >= 60 ? fmtClock(b.seconds) : `${b.seconds}s`}
+            </span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -128,6 +272,7 @@ export function Trace({ events }: { events: AtlasEvent[] }) {
   const groups = groupByPhase(events);
   return (
     <div className="space-y-1">
+      <PhaseDurations events={events} />
       {groups.map((g, gi) => (
         <Collapsible key={`${g.phase}-${gi}`} defaultOpen>
           <CollapsibleTrigger className="group mt-2 flex w-full items-center gap-2 text-left">
