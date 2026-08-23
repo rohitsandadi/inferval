@@ -32,7 +32,21 @@ Typical agent flow: connect_repo -> study the repo -> create_eval for each
 scenario worth guarding (start with 2-3: a short and a long/heavier one;
 thresholds ~3-5x the measurement noise, e.g. -10% tokens_per_s) ->
 submit_review on a change -> get_run until done -> get_report.
+
+For a pull request, review_pr does the whole arc in one call: a background
+worker triages the diff, checks which stored evals cover it, may propose one
+tightly constrained scoped eval for an uncovered claim, and submits the
+review. It works even when the repo has no evals defined yet.
 `;
+
+async function apiDelete(path: string) {
+  const r = await fetch(`${API}${path}`, {
+    method: "DELETE",
+    signal: AbortSignal.timeout(30_000),
+  });
+  if (r.status >= 400) throw new Error(`${r.status}: ${await detail(r)}`);
+  return r.json();
+}
 
 async function apiGet(path: string) {
   const r = await fetch(`${API}${path}`, { signal: AbortSignal.timeout(30_000) });
@@ -127,6 +141,33 @@ const handler = createMcpHandler(
         if (absolute) body.absolute = absolute;
         return dump(await apiPost(`/api/repos/${repo}/evals`, body));
       },
+    );
+
+    server.registerTool(
+      "delete_eval",
+      {
+        description:
+          "Delete one stored eval by name (evals seeded from the repo's own " +
+          "yaml cannot be deleted here).",
+        inputSchema: z.object({ repo: z.string(), name: z.string() }),
+      },
+      async ({ repo, name }) =>
+        dump(await apiDelete(`/api/repos/${repo}/evals/${name}`)),
+    );
+
+    server.registerTool(
+      "review_pr",
+      {
+        description:
+          "Review a pull request end to end: a background worker triages the " +
+          "diff, checks eval coverage, may propose one constrained scoped " +
+          "eval for an uncovered claim, and submits the formal review. Works " +
+          "on repos with no evals defined. Returns the session id; the run " +
+          "appears in list-of-runs a few minutes later.",
+        inputSchema: z.object({ repo: z.string(), pr: z.number().int() }),
+      },
+      async ({ repo, pr }) =>
+        dump(await apiPost(`/api/repos/${repo}/prs/${pr}/review`, {})),
     );
 
     server.registerTool(

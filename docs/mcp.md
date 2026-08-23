@@ -26,7 +26,17 @@ change, and read the verdict and report; agents should call `get_started`
 first for the concepts and eval format.
 
 Tools: `get_started`, `list_repos`, `connect_repo`, `list_evals`,
-`create_eval`, `submit_review`, `get_run`, `get_report`.
+`create_eval`, `delete_eval`, `review_pr`, `submit_review`, `get_run`,
+`get_report`.
+
+Codex note: if your Codex build does not take the JSON `url` form above, use
+the stdio bridge in `~/.codex/config.toml`:
+
+```toml
+[mcp_servers.inferval]
+command = "npx"
+args = ["-y", "mcp-remote", "https://inferval.vercel.app/api/mcp"]
+```
 
 Source: `web/app/api/mcp/route.ts` — each tool is one HTTP call to the
 deployed API.
