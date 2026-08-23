@@ -266,8 +266,8 @@ def test_branches_states_and_shape(branch_client):
     r = branch_client.get("/api/repos/rohitsandadi/nanoGPT/branches")
     assert r.status_code == 200
     by = {b["name"]: b for b in r.json()}
-    assert set(by) == {"opt-sampling", "opt-allocation", "fix-sampling",
-                       "experiment/kv-cache"}
+    assert set(by) == {"opt-sampling", "opt-allocation", "opt-layout",
+                       "fix-sampling", "experiment/kv-cache"}
 
     hero = by["opt-sampling"]
     assert hero["state"] == "regression"

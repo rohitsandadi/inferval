@@ -34,6 +34,16 @@
      }
     },
     {
+     "name": "opt-layout",
+     "sha": "bc198a42",
+     "pr": {
+      "number": 3,
+      "title": "Optimize attention: tensor-core-aligned q/k/v layout",
+      "url": "https://github.com/rohitsandadi/nanoGPT/pull/3",
+      "claim": "Repack q/k/v into dense, coalesced layouts before the attention kernel (\"~30% faster attention\"). Outputs are bit-identical."
+     }
+    },
+    {
      "name": "fix-sampling",
      "sha": "e26cf57a",
      "pr": null
