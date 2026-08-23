@@ -80,6 +80,8 @@ export function NewEvalDialog({
 
   useEffect(() => {
     if (!open) return;
+    // Reset the draft when the controlled dialog opens with a new prefill.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setName(prefill?.name ?? "");
     setGpu(repo.gpu);
     setCmd(prefill?.cmd ?? "");

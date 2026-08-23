@@ -15,5 +15,5 @@
   "No fair comparison possible: candidate preflight failed on both attempts: ImportError in model.py"
  ],
  "flagged": [],
- "pr_comment_md": "## Atlas: \u26a0\ufe0f INVALID\n\n- No fair comparison possible: candidate preflight failed on both attempts: ImportError in model.py"
+ "pr_comment_md": "## inferval: \u26a0\ufe0f INVALID\n\n- No fair comparison possible: candidate preflight failed on both attempts: ImportError in model.py"
 }

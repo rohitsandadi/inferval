@@ -4,7 +4,8 @@
 // carry sha/age, the Risks column ties triage in, and each row offers Test
 // (opens the change's session) and Review (formal run).
 
-import { use, useCallback, useEffect, useMemo, useState } from "react";
+import { use, useCallback, useMemo, useState } from "react";
+import { useMutation, useQueries, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { Search } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -30,16 +31,18 @@ import { StatusDot, branchStateDot } from "@/components/status-dot";
 import { useRepoShell } from "@/components/repo-shell";
 import {
   createSession,
-  getBranches,
   getSession,
-  listRuns,
-  listSessions,
 } from "@/lib/api";
+import {
+  queryKeys,
+  useBranchesQuery,
+  useRunsQuery,
+  useSessionsQuery,
+} from "@/lib/queries";
 import { fmtCost } from "@/lib/format";
 import type {
   Annotation,
   BranchInfo,
-  RunSummary,
   SessionSummary,
 } from "@/lib/types";
 
@@ -55,52 +58,44 @@ export default function BranchesPage({
 }) {
   const { owner, name } = use(params);
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { repo, branches: allBranches, openNewReview } = useRepoShell();
   const repoName = `${decodeURIComponent(owner)}/${decodeURIComponent(name)}`;
 
   const [baseChoice, setBaseChoice] = useState<string | null>(null);
   const base = baseChoice ?? repo?.default_branch ?? null;
-  const [rows, setRows] = useState<BranchInfo[] | null>(null);
-  const [runs, setRuns] = useState<RunSummary[]>([]);
-  const [sessions, setSessions] = useState<SessionSummary[]>([]);
-  const [risksBySession, setRisksBySession] = useState<
-    Record<string, RiskSummary>
-  >({});
   const [query, setQuery] = useState("");
-
-  useEffect(() => {
-    if (base === null) return;
-    let alive = true;
-    setRows(null);
-    getBranches(repoName, base).then((bs) => {
-      if (alive) setRows(bs);
-    });
-    return () => {
-      alive = false;
-    };
-  }, [repoName, base]);
-
-  useEffect(() => {
-    listRuns(repoName).then(setRuns).catch(() => {});
-    listSessions(repoName).then((ss) => {
-      setSessions(ss);
-      ss.forEach((s) =>
-        getSession(s.session)
-          .then((d) => {
-            const anns: Annotation[] = d.triage ?? [];
-            if (anns.length > 0)
-              setRisksBySession((m) => ({
-                ...m,
-                [s.session]: {
-                  total: anns.length,
-                  gaps: anns.filter((a) => a.coverage === "gap").length,
-                },
-              }));
-          })
-          .catch(() => {}),
-      );
-    });
-  }, [repoName]);
+  const { data: rowsData } = useBranchesQuery(repoName, base ?? undefined);
+  const { data: runs = [] } = useRunsQuery(repoName);
+  const { data: sessions = [] } = useSessionsQuery(repoName);
+  const sessionQueries = useQueries({
+    queries: sessions.map((session) => ({
+      queryKey: queryKeys.session(session.session),
+      queryFn: () => getSession(session.session),
+      staleTime: 30_000,
+    })),
+  });
+  const rows: BranchInfo[] | null = base === null ? null : (rowsData ?? null);
+  const risksBySession = useMemo<Record<string, RiskSummary>>(
+    () =>
+      Object.fromEntries(
+        sessions.flatMap((session, index) => {
+          const anns: Annotation[] = sessionQueries[index]?.data?.triage ?? [];
+          return anns.length
+            ? [[session.session, {
+                total: anns.length,
+                gaps: anns.filter((annotation) => annotation.coverage === "gap").length,
+              }]]
+            : [];
+        }),
+      ),
+    [sessions, sessionQueries],
+  );
+  const createSessionMutation = useMutation({
+    mutationFn: (branch: string) => createSession(repoName, { branch }),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: queryKeys.sessions(repoName) }),
+  });
 
   const baseOptions = useMemo(() => {
     const set = new Set<string>();
@@ -136,10 +131,10 @@ export default function BranchesPage({
       const existing = sessionFor(b);
       const id = existing
         ? existing.session
-        : (await createSession(repoName, { branch: b.name })).session;
+        : (await createSessionMutation.mutateAsync(b.name)).session;
       router.push(`/repo/${owner}/${name}/sessions/${id}`);
     },
-    [router, owner, name, repoName, sessionFor],
+    [router, owner, name, sessionFor, createSessionMutation],
   );
 
   const visible = useMemo(() => {

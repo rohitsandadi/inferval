@@ -25,22 +25,25 @@ import { ReportSection } from "@/components/report-section";
 import { StatusDot, verdictDot } from "@/components/status-dot";
 import { Trace } from "@/components/trace";
 import { useRepoShell } from "@/components/repo-shell";
-import { getEvents, getReport, getRun, isMock } from "@/lib/api";
+import { isMock } from "@/lib/api";
+import {
+  useEventsQuery,
+  useReportQuery,
+  useRunQuery,
+} from "@/lib/queries";
 import { fmtClock, fmtCost, shortSha } from "@/lib/format";
 import { STATUS_CHIPS, statusFromEvents } from "@/lib/phases";
 import { cn } from "@/lib/utils";
 import type {
-  AtlasEvent,
+  InfervalEvent,
   Investigation,
-  Report,
-  RunDetail,
 } from "@/lib/types";
 
 const REPLAY_MS = 450;
 const GPU_USD_PER_S = 1.1 / 3600; // A10G on-demand ballpark; display only
 
 function deriveProposals(
-  events: AtlasEvent[],
+  events: InfervalEvent[],
   investigation: Investigation | undefined,
   investigationVisible: boolean,
 ): ProposalWithTime[] {
@@ -79,34 +82,18 @@ export default function ReviewPage({
 }) {
   const { owner, name, id } = use(params);
   const { repo, branches, setCrumbs, setTopbarRight } = useRepoShell();
-  const [detail, setDetail] = useState<RunDetail | null>(null);
-  const [events, setEvents] = useState<AtlasEvent[]>([]);
-  const [report, setReport] = useState<Report | null>(null);
+  const { data: detailData } = useRunQuery(id);
+  const { data: eventsData = [] } = useEventsQuery(id);
+  const reportReady =
+    detailData?.status === "done" ||
+    eventsData.some((event) => event.kind === "report_ready");
+  const { data: reportData } = useReportQuery(id, reportReady);
+  const detail = detailData ?? null;
+  const events = eventsData;
+  const report = reportData ?? null;
   const [visibleCount, setVisibleCount] = useState<number | null>(null); // null = all
   const [replaying, setReplaying] = useState(false);
   const replayTimer = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  // initial load
-  useEffect(() => {
-    getRun(id).then(setDetail).catch(() => setDetail(null));
-    getEvents(id).then(setEvents).catch(() => setEvents([]));
-    getReport(id).then(setReport).catch(() => setReport(null));
-  }, [id]);
-
-  // live polling: real API mode, run not done -> events?since=N every 2s
-  useEffect(() => {
-    if (isMock || events.length === 0) return;
-    if (statusFromEvents(events) === "done") return;
-    const t = setInterval(async () => {
-      const fresh = await getEvents(id, events.length);
-      if (fresh.length > 0) {
-        setEvents((prev) => [...prev, ...fresh]);
-        getRun(id).then(setDetail);
-        getReport(id).then(setReport).catch(() => {});
-      }
-    }, 2000);
-    return () => clearInterval(t);
-  }, [id, events]);
 
   // replay: reveal the feed one event at a time, as if live
   const startReplay = () => {
@@ -150,7 +137,7 @@ export default function ReviewPage({
   const done = status === "done";
   const cost = detail?.cost_usd ?? null;
 
-  // Crumbs: Atlas / repo / branch / id. Topbar right: cost (or live status).
+  // Crumbs: inferval / repo / branch / id. Topbar right: cost (or live status).
   useEffect(() => {
     setCrumbs([
       ...(branch
@@ -312,7 +299,6 @@ export default function ReviewPage({
                       variant="outline"
                       nativeButton={false}
                       render={
-                        // eslint-disable-next-line jsx-a11y/anchor-has-content
                         <a
                           href={`/repo/${owner}/${name}/prs/${prNumber}`}
                         />

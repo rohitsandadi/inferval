@@ -23,11 +23,11 @@ import { Delta } from "@/components/atoms";
 import { agentPrompt } from "@/components/agent-prompt";
 import { useRepoShell } from "@/components/repo-shell";
 import {
-  listGapBornEvals,
-  listRuns,
-  listSandboxes,
-  listSessions,
-} from "@/lib/api";
+  useGapBornEvalsQuery,
+  useRunsQuery,
+  useSandboxesQuery,
+  useSessionsQuery,
+} from "@/lib/queries";
 import {
   fmtClock,
   fmtCost,
@@ -35,11 +35,26 @@ import {
   looksLikeSha,
   shortSha,
 } from "@/lib/format";
-import type { RunSummary, SandboxInfo, SessionSummary } from "@/lib/types";
 
 function relShort(iso: string): string {
   const r = fmtRelative(iso);
   return r === "now" ? "now" : r.replace(" ago", "");
+}
+
+function Cooldown({ deadline }: { deadline: number }) {
+  const [remaining, setRemaining] = useState(
+    () => deadline - Date.now() / 1000,
+  );
+
+  useEffect(() => {
+    const timer = setInterval(
+      () => setRemaining(deadline - Date.now() / 1000),
+      1000,
+    );
+    return () => clearInterval(timer);
+  }, [deadline]);
+
+  return <> · cooldown {fmtClock(Math.max(0, remaining))}</>;
 }
 
 interface FeedItem {
@@ -54,21 +69,16 @@ export default function OverviewPage({
 }) {
   const { owner, name } = use(params);
   const router = useRouter();
-  const { repo, branches, runsVersion } = useRepoShell();
-  const [runs, setRuns] = useState<RunSummary[] | null>(null);
-  const [sandboxes, setSandboxes] = useState<SandboxInfo[]>([]);
-  const [sessions, setSessions] = useState<SessionSummary[]>([]);
-  const [gapBorn, setGapBorn] = useState(0);
+  const { repo, branches } = useRepoShell();
 
   const repoName = `${decodeURIComponent(owner)}/${decodeURIComponent(name)}`;
-  useEffect(() => {
-    listRuns(repoName).then(setRuns);
-  }, [repoName, runsVersion]);
-  useEffect(() => {
-    listSandboxes(repoName).then(setSandboxes);
-    listSessions(repoName).then(setSessions);
-    listGapBornEvals(repoName).then((g) => setGapBorn(g.length));
-  }, [repoName]);
+  const { data: runsData } = useRunsQuery(repoName);
+  const { data: sandboxesData = [] } = useSandboxesQuery(repoName);
+  const { data: sessions = [] } = useSessionsQuery(repoName);
+  const { data: gapBornData = [] } = useGapBornEvalsQuery(repoName);
+  const runs = runsData ?? null;
+  const sandboxes = sandboxesData;
+  const gapBorn = gapBornData.length;
 
   const changes = useMemo(
     () => branches.filter((b) => b.reviews_count > 0),
@@ -259,9 +269,9 @@ export default function OverviewPage({
                 {s.state === "running" && s.uptime_s !== null
                   ? ` · ${fmtClock(s.uptime_s)}`
                   : ""}
-                {s.state === "cooldown" && s.deadline !== null
-                  ? ` · cooldown ${fmtClock(s.deadline - Date.now() / 1000)}`
-                  : ""}
+                {s.state === "cooldown" && s.deadline !== null ? (
+                  <Cooldown deadline={s.deadline} />
+                ) : null}
                 {s.attached?.session ? (
                   <span className="font-mono text-[10.5px]">
                     {" "}

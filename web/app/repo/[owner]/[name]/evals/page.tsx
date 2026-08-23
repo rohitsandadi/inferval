@@ -1,10 +1,11 @@
 "use client";
 
-// Evals (wireframe-v3 screen 6): the suite as atlas.yaml defines it — name,
+// Evals (wireframe-v3 screen 6): the suite as inferval.yaml defines it — name,
 // origin (seed / gap-born "from PR #N"), command, thresholds, and the last
 // five reviews' deltas per eval (oldest → newest, latest emphasized).
 
-import { use, useEffect, useMemo, useState } from "react";
+import { use, useState } from "react";
+import { useQueries } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -18,7 +19,12 @@ import {
 } from "@/components/ui/table";
 import { NewEvalDialog } from "@/components/new-eval-dialog";
 import { useRepoShell } from "@/components/repo-shell";
-import { getRun, listGapBornEvals, listRuns } from "@/lib/api";
+import { getRun } from "@/lib/api";
+import {
+  queryKeys,
+  useGapBornEvalsQuery,
+  useRunsQuery,
+} from "@/lib/queries";
 import { fmtDelta } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { CheckResult, EvalSpec } from "@/lib/types";
@@ -76,74 +82,52 @@ export default function EvalsPage({
   const repoName = `${decodeURIComponent(owner)}/${decodeURIComponent(name)}`;
   const { repo } = useRepoShell();
 
-  const [evals, setEvals] = useState<EvalSpec[] | null>(null);
-  const [gapBorn, setGapBorn] = useState<EvalRow[]>([]);
-  // checks of the last <=5 verdict-bearing runs, oldest -> newest
-  const [history, setHistory] = useState<CheckResult[][]>([]);
   const [created, setCreated] = useState<EvalRow[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
 
-  // The suite lives in atlas.yaml; the newest verdict-bearing run carries its
-  // resolved spec. The last-5 delta history comes from those runs' verdicts.
-  useEffect(() => {
-    let alive = true;
-    (async () => {
-      const runs = await listRuns(repoName);
-      const done = runs
-        .filter((r) => r.verdict !== null)
-        .slice(0, HISTORY_N); // listRuns is newest first
-      if (done.length === 0) {
-        if (alive) setEvals([]);
-        return;
-      }
-      const details = await Promise.all(
-        done.map((r) => getRun(r.run).catch(() => null)),
-      );
-      if (!alive) return;
-      const newest = details[0];
-      setEvals(newest?.spec.evals ?? []);
-      setHistory(
-        details
-          .slice()
-          .reverse() // oldest -> newest
-          .map((d) => d?.verdict?.checks ?? []),
-      );
-    })();
-    listGapBornEvals(repoName).then((gs) => {
-      if (alive)
-        setGapBorn(
-          gs.map((g) => ({
-            name: g.name,
-            cmd: g.cmd,
-            checks: g.checks,
-            origin: g.origin,
-          })),
-        );
-    });
-    return () => {
-      alive = false;
-    };
-  }, [repoName]);
+  const { data: runs = [] } = useRunsQuery(repoName);
+  const done = runs.filter((run) => run.verdict !== null).slice(0, HISTORY_N);
+  const detailQueries = useQueries({
+    queries: done.map((run) => ({
+      queryKey: queryKeys.run(run.run),
+      queryFn: () => getRun(run.run),
+      staleTime: 5 * 60_000,
+    })),
+  });
+  const details = detailQueries.map((query) => query.data ?? null);
+  const evals: EvalSpec[] | null = detailQueries.some((query) => query.isPending)
+    ? null
+    : (details[0]?.spec.evals ?? []);
+  const history: CheckResult[][] = details
+    .slice()
+    .reverse()
+    .map((detail) => detail?.verdict?.checks ?? []);
+  const { data: gapBornData = [] } = useGapBornEvalsQuery(repoName);
+  const gapBorn: EvalRow[] = gapBornData.map((item) => ({
+    name: item.name,
+    cmd: item.cmd,
+    checks: item.checks,
+    origin: item.origin,
+  }));
 
-  const rows = useMemo<EvalRow[]>(() => {
-    const specRows: EvalRow[] = (evals ?? []).map((e) => ({
-      ...e,
-      origin: "seed" as const,
-    }));
-    const have = new Set(specRows.map((e) => e.name));
-    const fallback: EvalRow[] =
-      specRows.length === 0 && repo
-        ? repo.evals.map(
-            (n) => ({ name: n, cmd: "", checks: {}, origin: "seed" }) as EvalRow,
-          )
-        : [];
-    return [
-      ...specRows,
-      ...fallback,
-      ...gapBorn.filter((g) => !have.has(g.name)),
-      ...created,
-    ];
-  }, [evals, repo, gapBorn, created]);
+  const specRows: EvalRow[] = (evals ?? []).map((evalSpec) => ({
+    ...evalSpec,
+    origin: "seed" as const,
+  }));
+  const knownNames = new Set(specRows.map((evalSpec) => evalSpec.name));
+  const fallbackRows: EvalRow[] =
+    specRows.length === 0 && repo
+      ? repo.evals.map(
+          (evalName) =>
+            ({ name: evalName, cmd: "", checks: {}, origin: "seed" }) as EvalRow,
+        )
+      : [];
+  const rows: EvalRow[] = [
+    ...specRows,
+    ...fallbackRows,
+    ...gapBorn.filter((evalSpec) => !knownNames.has(evalSpec.name)),
+    ...created,
+  ];
 
   // One point per past review: the eval's primary metric (tokens/s when the
   // eval measures it, else its first measured check).
@@ -167,7 +151,7 @@ export default function EvalsPage({
     <div className="space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="font-mono text-[11px] text-faint">
-          atlas.yaml @ {repo?.default_branch ?? "—"}
+          inferval.yaml @ {repo?.default_branch ?? "—"}
           {repo?.correctness ? ` · correctness: ${repo.correctness}` : ""}
           {repo?.overrides?.length
             ? ` · overrides: ${repo.overrides.join(", ")}`

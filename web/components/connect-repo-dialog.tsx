@@ -4,7 +4,8 @@
 // button is a full-page redirect through the API's OAuth routes, and the
 // picker proxies the account's repo list server-side.
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -16,10 +17,14 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
-import { connectRepo, githubLoginUrl, githubRepos, isMock } from "@/lib/api";
+import { connectRepo, githubLoginUrl, isMock } from "@/lib/api";
+import {
+  queryKeys,
+  useGithubReposQuery,
+} from "@/lib/queries";
 import { Input } from "@/components/ui/input";
 import { fmtRelative } from "@/lib/format";
-import type { GithubRepo, GithubStatus } from "@/lib/types";
+import type { GithubStatus } from "@/lib/types";
 
 export function ConnectRepoDialog({
   open,
@@ -34,10 +39,26 @@ export function ConnectRepoDialog({
   connectedNames: string[];
   onConnected: () => void;
 }) {
-  const [repos, setRepos] = useState<GithubRepo[] | null>(null);
-  const [busy, setBusy] = useState<string | null>(null);
+  const queryClient = useQueryClient();
   const [added, setAdded] = useState<string[]>([]);
   const [publicName, setPublicName] = useState("");
+  const { data: repoData, isPending: reposPending } = useGithubReposQuery(
+    open && Boolean(gh?.connected),
+  );
+  const repos = repoData ?? null;
+  const connectMutation = useMutation({
+    mutationFn: connectRepo,
+    onSuccess: async (repo) => {
+      setAdded((current) => [...current, repo.name]);
+      setPublicName("");
+      toast(`${repo.name} connected`);
+      await queryClient.invalidateQueries({ queryKey: queryKeys.repos() });
+      onConnected();
+    },
+  });
+  const busy = connectMutation.isPending
+    ? (connectMutation.variables ?? null)
+    : null;
 
   const addPublic = async () => {
     const name = publicName.trim();
@@ -45,21 +66,8 @@ export function ConnectRepoDialog({
       toast("Use the owner/repo form");
       return;
     }
-    setBusy(name);
-    try {
-      await connectRepo(name);
-      setAdded((a) => [...a, name]);
-      setPublicName("");
-      toast(`${name} connected`);
-      onConnected();
-    } finally {
-      setBusy(null);
-    }
+    await connectMutation.mutateAsync(name);
   };
-
-  useEffect(() => {
-    if (open && gh?.connected) githubRepos().then(setRepos).catch(() => setRepos([]));
-  }, [open, gh?.connected]);
 
   const taken = new Set([...connectedNames, ...added]);
 
@@ -105,7 +113,7 @@ export function ConnectRepoDialog({
               Connect GitHub
             </Button>
           </div>
-        ) : repos === null ? (
+        ) : reposPending || repos === null ? (
           <div className="space-y-2">
             {[0, 1, 2].map((i) => (
               <Skeleton key={i} className="h-8 w-full" />
@@ -139,15 +147,7 @@ export function ConnectRepoDialog({
                       variant="outline"
                       disabled={busy === r.name}
                       onClick={async () => {
-                        setBusy(r.name);
-                        try {
-                          await connectRepo(r.name);
-                          setAdded((a) => [...a, r.name]);
-                          toast(`${r.name} connected`);
-                          onConnected();
-                        } finally {
-                          setBusy(null);
-                        }
+                        await connectMutation.mutateAsync(r.name);
                       }}
                     >
                       {busy === r.name ? "Connecting…" : "Connect"}

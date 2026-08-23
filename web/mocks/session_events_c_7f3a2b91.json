@@ -155,7 +155,7 @@
   "kind": "review_submitted",
   "detail": {
    "run": "r_fix01",
-   "base": "atlas-base",
+   "base": "inferval-base",
    "head": "opt-sampling",
    "evals": "suite"
   }

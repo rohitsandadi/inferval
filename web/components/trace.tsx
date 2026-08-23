@@ -6,7 +6,6 @@
 // the artifact. bench_block_done rows carry a GPU-utilization sparkline when
 // the run recorded telemetry (absent on pre-telemetry runs — silent).
 
-import { useEffect, useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -14,11 +13,12 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { artifactUrl, blockTelemetryFile, getTelemetry } from "@/lib/api";
+import { artifactUrl, blockTelemetryFile } from "@/lib/api";
+import { useTelemetryQuery } from "@/lib/queries";
 import { groupByPhase } from "@/lib/phases";
 import { fmtClock, fmtTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import type { AtlasEvent, Telemetry, Tier } from "@/lib/types";
+import type { InfervalEvent, Telemetry, Tier } from "@/lib/types";
 
 const tierStyles: Record<Tier, string> = {
   system: "border-border text-muted-foreground",
@@ -46,7 +46,7 @@ function str(v: unknown): string {
 }
 
 // Kind-aware one-line summaries; unknown kinds fall back to compact JSON.
-function summarize(e: AtlasEvent): string {
+function summarize(e: InfervalEvent): string {
   const d = e.detail;
   switch (e.kind) {
     case "run_created":
@@ -101,23 +101,6 @@ function summarize(e: AtlasEvent): string {
 
 // ---- telemetry sparklines (per bench block) --------------------------------
 
-// One fetch per (run, block) for the lifetime of the page; polling re-renders
-// must not refetch, and absence (null) is cached too.
-const teleCache = new Map<string, Promise<Telemetry | null>>();
-
-function fetchBlockTelemetry(
-  runId: string,
-  blockFile: string,
-): Promise<Telemetry | null> {
-  const key = `${runId}:${blockFile}`;
-  let p = teleCache.get(key);
-  if (!p) {
-    p = getTelemetry(runId, blockFile).catch(() => null);
-    teleCache.set(key, p);
-  }
-  return p;
-}
-
 const SPARK_MAX = 160; // samples drawn; longer series are stride-sampled
 
 function Sparkline({ tele }: { tele: Telemetry }) {
@@ -164,23 +147,14 @@ function Sparkline({ tele }: { tele: Telemetry }) {
   );
 }
 
-function BlockTelemetry({ event }: { event: AtlasEvent }) {
-  const [tele, setTele] = useState<Telemetry | null>(null);
+function BlockTelemetry({ event }: { event: InfervalEvent }) {
   const file = blockTelemetryFile(event.detail);
-  useEffect(() => {
-    let alive = true;
-    fetchBlockTelemetry(event.run, file).then((t) => {
-      if (alive) setTele(t);
-    });
-    return () => {
-      alive = false;
-    };
-  }, [event.run, file]);
+  const { data: tele } = useTelemetryQuery(event.run, file);
   if (!tele || tele.util_gpu.length === 0) return null;
   return <Sparkline tele={tele} />;
 }
 
-function SpanRow({ event }: { event: AtlasEvent }) {
+function SpanRow({ event }: { event: InfervalEvent }) {
   const runId = event.run;
   const isBench = event.kind === "bench_block_done" && !event.detail.profile;
   return (
@@ -219,7 +193,7 @@ interface PhaseBar {
   seconds: number;
 }
 
-function phaseBars(events: AtlasEvent[]): PhaseBar[] {
+function phaseBars(events: InfervalEvent[]): PhaseBar[] {
   const groups = groupByPhase(events);
   const bars: PhaseBar[] = [];
   for (let i = 0; i < groups.length; i++) {
@@ -238,7 +212,7 @@ function phaseBars(events: AtlasEvent[]): PhaseBar[] {
   return bars;
 }
 
-function PhaseDurations({ events }: { events: AtlasEvent[] }) {
+function PhaseDurations({ events }: { events: InfervalEvent[] }) {
   const bars = phaseBars(events);
   const max = Math.max(1, ...bars.map((b) => b.seconds));
   if (bars.length < 2) return null;
@@ -268,7 +242,7 @@ function PhaseDurations({ events }: { events: AtlasEvent[] }) {
   );
 }
 
-export function Trace({ events }: { events: AtlasEvent[] }) {
+export function Trace({ events }: { events: InfervalEvent[] }) {
   const groups = groupByPhase(events);
   return (
     <div className="space-y-1">

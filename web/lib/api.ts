@@ -1,4 +1,4 @@
-// The only file that knows the backend. Real mode when NEXT_PUBLIC_ATLAS_API
+// The only file that knows the backend. Real mode when NEXT_PUBLIC_INFERVAL_API
 // is set; otherwise everything is served from web/mocks/ (fixture copies).
 //
 // Frozen endpoints:
@@ -11,7 +11,7 @@
 //   POST /api/runs/{id}/proposals/{pid}      body {"decision": "approved"|"denied"}
 
 import type {
-  AtlasEvent,
+  InfervalEvent,
   BranchInfo,
   GithubRepo,
   GithubStatus,
@@ -54,7 +54,7 @@ import mockSandboxesNanogpt from "@/mocks/sandboxes_nanogpt.json";
 import mockDiffPr1 from "@/mocks/diff_pr1.json";
 import mockTelemetryFix01 from "@/mocks/telemetry_r_fix01.json";
 
-const API = process.env.NEXT_PUBLIC_ATLAS_API; // e.g. https://...modal.run
+const API = process.env.NEXT_PUBLIC_INFERVAL_API; // e.g. https://...modal.run
 
 export const isMock = !API;
 
@@ -77,7 +77,7 @@ async function post<T>(path: string, body: unknown): Promise<T> {
 // ---- mock store ----
 
 type MockRun = {
-  events: AtlasEvent[];
+  events: InfervalEvent[];
   detail: RunDetail;
   report: Report | null;
 };
@@ -97,7 +97,7 @@ function detail(
 
 // Live mock run: fix-sampling mid-measurement. Reuses the fix01 event stream
 // up to (not including) the verdict, re-stamped to its own id and time.
-const liveEvents: AtlasEvent[] = (eventsFix01 as AtlasEvent[])
+const liveEvents: InfervalEvent[] = (eventsFix01 as InfervalEvent[])
   .slice(0, 8)
   .map((e) => ({
     ...e,
@@ -123,22 +123,22 @@ const mockRuns: Record<string, MockRun> = {
     report: null,
   },
   r_fix01: {
-    events: eventsFix01 as AtlasEvent[],
+    events: eventsFix01 as InfervalEvent[],
     detail: detail(specFix01, verdictFix01, 0.14),
     report: reportFix01 as Report,
   },
   r_pass: {
-    events: eventsPass as AtlasEvent[],
+    events: eventsPass as InfervalEvent[],
     detail: detail(specPass, verdictPass, 0.05),
     report: reportPass as Report,
   },
   r_nb: {
-    events: eventsNb as AtlasEvent[],
+    events: eventsNb as InfervalEvent[],
     detail: detail(specNb, verdictNb, 0.05),
     report: reportNb as Report,
   },
   r_inv: {
-    events: eventsInv as AtlasEvent[],
+    events: eventsInv as InfervalEvent[],
     detail: detail(specInv, verdictInv, 0.01),
     report: reportInv as Report,
   },
@@ -211,7 +211,7 @@ export async function getRun(id: string): Promise<RunDetail> {
 export async function getEvents(
   id: string,
   since = 0,
-): Promise<AtlasEvent[]> {
+): Promise<InfervalEvent[]> {
   if (!API) {
     const r = mockRuns[id];
     if (!r) throw new Error(`unknown run ${id}`);
@@ -225,7 +225,7 @@ export async function getEvents(
   return text
     .split("\n")
     .filter((l) => l.trim())
-    .map((l) => JSON.parse(l) as AtlasEvent);
+    .map((l) => JSON.parse(l) as InfervalEvent);
 }
 
 export async function getReport(id: string): Promise<Report | null> {
@@ -326,19 +326,19 @@ export function artifactUrl(runId: string, path: string): string | null {
 
 type MockSession = {
   detail: SessionDetail;
-  events: AtlasEvent[];
+  events: InfervalEvent[];
   diff: string | null;
 };
 
 const mockSessions: Record<string, MockSession> = {
   c_7f3a2b91: {
     detail: mockSession1 as SessionDetail,
-    events: mockSession1Events as AtlasEvent[],
+    events: mockSession1Events as InfervalEvent[],
     diff: (mockDiffPr1 as { diff: string }).diff,
   },
   c_1b0e44d7: {
     detail: mockSession2 as SessionDetail,
-    events: mockSession2Events as AtlasEvent[],
+    events: mockSession2Events as InfervalEvent[],
     diff: null,
   },
 };
@@ -432,7 +432,7 @@ export async function fetchPrDiffFromGitHub(
 export async function getSessionEvents(
   id: string,
   since = 0,
-): Promise<AtlasEvent[]> {
+): Promise<InfervalEvent[]> {
   if (!API) {
     const s = mockSessions[id];
     if (!s) throw new Error(`unknown session ${id}`);
@@ -446,7 +446,7 @@ export async function getSessionEvents(
   return text
     .split("\n")
     .filter((l) => l.trim())
-    .map((l) => JSON.parse(l) as AtlasEvent);
+    .map((l) => JSON.parse(l) as InfervalEvent);
 }
 
 export async function postSessionMessage(
@@ -514,7 +514,7 @@ export async function sandboxAction(
 }
 
 // ---- gap-born evals (mock-only today: no server route persists approved
-// drafts into atlas.yaml yet; real mode returns []) ----
+// drafts into inferval.yaml yet; real mode returns []) ----
 
 export interface GapBornEval {
   name: string;

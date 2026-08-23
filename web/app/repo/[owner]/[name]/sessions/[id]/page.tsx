@@ -6,7 +6,13 @@
 // load-bearing structure; after a review, verdict chips land back on the
 // annotated lines.
 
-import { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { use, useCallback, useEffect, useMemo, useState } from "react";
+import {
+  useMutation,
+  useQueries,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -22,27 +28,25 @@ import { NewEvalDialog, type EvalPrefill } from "@/components/new-eval-dialog";
 import { useRepoShell } from "@/components/repo-shell";
 import {
   fetchPrDiffFromGitHub,
-  getReport,
   getRun,
-  getSession,
-  getSessionDiff,
-  getSessionEvents,
   postSessionMessage,
 } from "@/lib/api";
+import {
+  queryKeys,
+  useReportQuery,
+  useSessionDiffQuery,
+  useSessionEventsQuery,
+  useSessionQuery,
+} from "@/lib/queries";
 import { parseUnifiedDiff, type DiffFile } from "@/lib/diff";
 import { fmtCost, fmtDelta, metricLabel } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type {
   Annotation,
-  AtlasEvent,
   EvalDraft,
   Report,
-  RunDetail,
-  SessionDetail,
   VerdictKind,
 } from "@/lib/types";
-
-const POLL_MS = 2000;
 
 interface LinkedRun {
   verdict: VerdictKind | null;
@@ -113,61 +117,29 @@ export default function SessionPage({
   const { owner, name, id } = use(params);
   const repoName = `${decodeURIComponent(owner)}/${decodeURIComponent(name)}`;
   const { repo, setCrumbs, setTopbarRight, openNewReview } = useRepoShell();
+  const queryClient = useQueryClient();
 
-  const [detail, setDetail] = useState<SessionDetail | null>(null);
-  const [diffText, setDiffText] = useState<string | null>(null);
-  const [diffLoaded, setDiffLoaded] = useState(false);
-  const [events, setEvents] = useState<AtlasEvent[]>([]);
-  const [linkedRuns, setLinkedRuns] = useState<Record<string, LinkedRun | null>>(
-    {},
-  );
-  const [linkedReport, setLinkedReport] = useState<Report | null>(null);
+  const { data: detailData } = useSessionQuery(id);
+  const { data: events = [] } = useSessionEventsQuery(id);
+  const cachedDiff = useSessionDiffQuery(id);
+  const detail = detailData ?? null;
+  const githubDiff = useQuery({
+    queryKey: [...queryKeys.sessionDiff(id), "github", detail?.pr?.number ?? 0],
+    queryFn: () => fetchPrDiffFromGitHub(repoName, detail!.pr!.number),
+    enabled: cachedDiff.data === null && Boolean(detail?.pr),
+    staleTime: Infinity,
+  });
+  const diffText = cachedDiff.data ?? githubDiff.data ?? null;
+  const diffLoaded =
+    !cachedDiff.isPending &&
+    !(cachedDiff.data === null && Boolean(detail?.pr) && githubDiff.isPending);
   const [activeFile, setActiveFile] = useState<string | null>(null);
-  const [sending, setSending] = useState(false);
   const [evalDialog, setEvalDialog] = useState<EvalPrefill | null>(null);
-  const eventsRef = useRef<AtlasEvent[]>([]);
-  eventsRef.current = events;
 
-  // initial load
   useEffect(() => {
-    getSession(id).then(setDetail).catch(() => setDetail(null));
-    getSessionEvents(id).then(setEvents).catch(() => setEvents([]));
-  }, [id]);
-
-  // diff: session cache first, then the GitHub API (CORS-open) fallback
-  useEffect(() => {
-    let alive = true;
-    (async () => {
-      let text = await getSessionDiff(id).catch(() => null);
-      if (!text && detail?.pr) {
-        text = await fetchPrDiffFromGitHub(repoName, detail.pr.number);
-      }
-      if (alive) {
-        setDiffText(text);
-        setDiffLoaded(true);
-      }
-    })();
-    return () => {
-      alive = false;
-    };
-  }, [id, repoName, detail?.pr]);
-
-  // event polling with the runs-route cursor semantics (cursor = lines held)
-  useEffect(() => {
-    const t = setInterval(async () => {
-      try {
-        const since = eventsRef.current.length;
-        const fresh = await getSessionEvents(id, since);
-        if (fresh.length > 0) {
-          setEvents((prev) => [...prev, ...fresh]);
-          getSession(id).then(setDetail).catch(() => {}); // triage/drafts may have landed
-        }
-      } catch {
-        // transient poll failure: next tick retries
-      }
-    }, POLL_MS);
-    return () => clearInterval(t);
-  }, [id]);
+    if (events.length === 0) return;
+    queryClient.invalidateQueries({ queryKey: queryKeys.session(id) });
+  }, [events.length, id, queryClient]);
 
   // review_submitted -> fetch (and, while live, refresh) the linked runs
   const reviewRunIds = useMemo(
@@ -178,39 +150,33 @@ export default function SessionPage({
         .filter(Boolean),
     [events],
   );
-  useEffect(() => {
-    if (reviewRunIds.length === 0) return;
-    let alive = true;
-    const load = async () => {
-      for (const run of reviewRunIds) {
-        try {
-          const d: RunDetail = await getRun(run);
-          if (!alive) return;
-          setLinkedRuns((m) => ({
-            ...m,
-            [run]: {
-              verdict: d.verdict?.verdict ?? null,
-              status: d.status,
-              cost_usd: d.cost_usd,
-            },
-          }));
-          if (d.verdict) {
-            getReport(run)
-              .then((r) => alive && r && setLinkedReport(r))
-              .catch(() => {});
-          }
-        } catch {
-          if (alive) setLinkedRuns((m) => ({ ...m, [run]: null }));
-        }
-      }
-    };
-    load();
-    const t = setInterval(load, 5000);
-    return () => {
-      alive = false;
-      clearInterval(t);
-    };
-  }, [reviewRunIds]);
+  const linkedRunQueries = useQueries({
+    queries: reviewRunIds.map((run) => ({
+      queryKey: queryKeys.run(run),
+      queryFn: () => getRun(run),
+      refetchInterval: (query: { state: { data?: { status?: string } } }) =>
+        query.state.data?.status !== "done" ? 5_000 : false,
+    })),
+  });
+  const linkedRuns = useMemo<Record<string, LinkedRun | null>>(
+    () =>
+      Object.fromEntries(
+        reviewRunIds.map((run, index) => {
+          const linked = linkedRunQueries[index]?.data;
+          return [
+            run,
+            linked
+              ? {
+                  verdict: linked.verdict?.verdict ?? null,
+                  status: linked.status,
+                  cost_usd: linked.cost_usd,
+                }
+              : null,
+          ];
+        }),
+      ),
+    [reviewRunIds, linkedRunQueries],
+  );
 
   // triage: the detail file wins; a live triage event fills in before refetch
   const annotations = useMemo<Annotation[]>(() => {
@@ -248,13 +214,18 @@ export default function SessionPage({
   }, [events]);
 
   // newest done linked run drives the post-review state
-  const doneRun = useMemo(() => {
+  const doneRun = (() => {
     for (let i = reviewRunIds.length - 1; i >= 0; i--) {
       const r = linkedRuns[reviewRunIds[i]];
       if (r?.verdict) return { run: reviewRunIds[i], ...r };
     }
     return null;
-  }, [reviewRunIds, linkedRuns]);
+  })();
+  const { data: linkedReportData } = useReportQuery(
+    doneRun?.run ?? "",
+    Boolean(doneRun?.verdict),
+  );
+  const linkedReport: Report | null = linkedReportData ?? null;
 
   // verdict chips: map the linked run's checks onto annotations via coverage
   const chips = useMemo<VerdictChip[]>(() => {
@@ -330,18 +301,20 @@ export default function SessionPage({
     return () => setTopbarRight(null);
   }, [setTopbarRight, id, working]);
 
+  const sendMutation = useMutation({
+    mutationFn: (text: string) => postSessionMessage(id, text),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.sessionEvents(id) }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.session(id) }),
+      ]);
+    },
+  });
   const onSend = useCallback(
     async (text: string) => {
-      setSending(true);
-      try {
-        await postSessionMessage(id, text);
-        const fresh = await getSessionEvents(id, eventsRef.current.length);
-        if (fresh.length > 0) setEvents((prev) => [...prev, ...fresh]);
-      } finally {
-        setSending(false);
-      }
+      await sendMutation.mutateAsync(text);
     },
-    [id],
+    [sendMutation],
   );
 
   if (detail === null) {
@@ -572,7 +545,7 @@ export default function SessionPage({
                   )}
                 </div>
                 <p className="mt-1.5 font-mono text-[9.5px] text-faint">
-                  {repo?.gpu ?? "—"} · verdict from atlas.yaml thresholds
+                  {repo?.gpu ?? "—"} · verdict from inferval.yaml thresholds
                 </p>
               </div>
               <Button
@@ -600,7 +573,6 @@ export default function SessionPage({
                 variant="outline"
                 nativeButton={false}
                 render={
-                  // eslint-disable-next-line jsx-a11y/anchor-has-content
                   <a href={`/repo/${owner}/${name}/reviews/${doneRun.run}`} />
                 }
               >
@@ -626,7 +598,7 @@ export default function SessionPage({
             working={working}
             workingSince={workingSince}
             onSend={onSend}
-            sending={sending}
+              sending={sendMutation.isPending}
           />
         </div>
       </div>

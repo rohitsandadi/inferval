@@ -1,10 +1,10 @@
-// Mirrors atlas/contracts/types.py (ARCHITECTURE §4). Amendments happen there first.
+// Mirrors inferval/contracts/types.py (ARCHITECTURE §4). Amendments happen there first.
 
 export type Tier = "system" | "policy" | "agent" | "human";
 export type VerdictKind = "pass" | "regression" | "invalid";
 export type Mode = "compare" | "check";
 
-export interface AtlasEvent {
+export interface InfervalEvent {
   t: string; // ISO timestamp
   run: string;
   tier: Tier;
@@ -120,8 +120,8 @@ export interface RepoInfo {
   runs_count: number;
   description?: string;
   evals: string[];
-  correctness?: string; // atlas.yaml correctness rule, e.g. token_ids_match
-  overrides?: string[]; // atlas.yaml allowed overrides
+  correctness?: string; // inferval.yaml correctness rule, e.g. token_ids_match
+  overrides?: string[]; // inferval.yaml allowed overrides
   last_run: { run: string; verdict: VerdictKind; status: string; t: string } | null;
 }
 
@@ -160,7 +160,7 @@ export interface NewRunRequest {
   claim?: string;
 }
 
-// ---- sessions + sandboxes (v3 endpoints; shapes mirror atlas/api) ----
+// ---- sessions + sandboxes (v3 endpoints; shapes mirror inferval/api) ----
 
 export interface SessionSummary {
   session: string;

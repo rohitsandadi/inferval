@@ -2,14 +2,14 @@
  {
   "name": "rohitsandadi/nanoGPT",
   "gpu": "A10G",
-  "image": "atlas-torch-2.8.0",
+  "image": "inferval-torch-2.8.0",
   "correctness": "token_ids_match",
   "overrides": [
    "batch"
   ],
-  "default_branch": "atlas-base",
+  "default_branch": "inferval-base",
   "runs_count": 5,
-  "description": "GPT-2 124M generation benchmarks \u2014 bench.py + atlas.yaml",
+  "description": "GPT-2 124M generation benchmarks \u2014 bench.py + inferval.yaml",
   "evals": [
    "generate_short",
    "generate_long"
@@ -24,7 +24,7 @@
  {
   "name": "rohitsandadi/whisper-serve",
   "gpu": "L4",
-  "image": "atlas-torch-2.8.0",
+  "image": "inferval-torch-2.8.0",
   "default_branch": "main",
   "runs_count": 0,
   "description": "streaming ASR inference server",
@@ -37,7 +37,7 @@
  {
   "name": "berkeley-mlsys/paged-attn-lab",
   "gpu": "H100",
-  "image": "atlas-torch-2.8.0",
+  "image": "inferval-torch-2.8.0",
   "default_branch": "main",
   "runs_count": 0,
   "description": "paged attention kernels under test",

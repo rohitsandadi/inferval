@@ -7,7 +7,7 @@
   "url": "https://github.com/rohitsandadi/nanoGPT/pull/2",
   "body": "minor speedup from inference-mode tensors; outputs identical.",
   "head": "5e7d20aa",
-  "base": "atlas-base"
+  "base": "inferval-base"
  },
  "branch": "opt-allocation",
  "triage": [

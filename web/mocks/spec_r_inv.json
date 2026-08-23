@@ -6,7 +6,7 @@
  "base_sha": "3adf61e1",
  "head_sha": "deadbee1",
  "gpu": "A10G",
- "image": "atlas-torch-2.8.0",
+ "image": "inferval-torch-2.8.0",
  "evals": [
   {
    "name": "generate_short",

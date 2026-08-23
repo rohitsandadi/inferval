@@ -2,7 +2,7 @@
 // chip. Sequential state machine: a marker kind advances the phase; unknown
 // kinds stay in the current phase (the kind enum is open).
 
-import type { AtlasEvent, RunStatus } from "@/lib/types";
+import type { InfervalEvent, RunStatus } from "@/lib/types";
 
 export const PHASES = [
   "Submit",
@@ -36,21 +36,21 @@ const AGENT_REASONING_KINDS = new Set([
   "conclusion",
 ]);
 
-export function isAgentReasoning(e: AtlasEvent): boolean {
+export function isAgentReasoning(e: InfervalEvent): boolean {
   return AGENT_REASONING_KINDS.has(e.kind) && e.tier !== "system";
 }
 
 export interface PhaseGroup {
   phase: Phase;
-  events: { index: number; event: AtlasEvent }[];
+  events: { index: number; event: InfervalEvent }[];
 }
 
-export function groupByPhase(events: AtlasEvent[]): PhaseGroup[] {
+export function groupByPhase(events: InfervalEvent[]): PhaseGroup[] {
   const groups: PhaseGroup[] = [];
   let phase: Phase = "Submit";
   let sawVerdict = false;
 
-  const push = (index: number, event: AtlasEvent) => {
+  const push = (index: number, event: InfervalEvent) => {
     const last = groups[groups.length - 1];
     if (last && last.phase === phase) last.events.push({ index, event });
     else groups.push({ phase, events: [{ index, event }] });
@@ -79,7 +79,7 @@ export function groupByPhase(events: AtlasEvent[]): PhaseGroup[] {
 }
 
 // The events feed is the status source of truth: latest event wins.
-export function statusFromEvents(events: AtlasEvent[]): RunStatus {
+export function statusFromEvents(events: InfervalEvent[]): RunStatus {
   let status: RunStatus = "queued";
   let sawVerdict = false;
   for (const e of events) {

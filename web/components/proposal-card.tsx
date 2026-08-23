@@ -4,9 +4,11 @@
 // Deny are live while a proposal is pending; executed ones render settled.
 
 import { useEffect, useState } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { StatusDot, type DotState } from "@/components/status-dot";
 import { decideProposal } from "@/lib/api";
+import { queryKeys } from "@/lib/queries";
 import { cn } from "@/lib/utils";
 import type { Proposal } from "@/lib/types";
 
@@ -62,16 +64,21 @@ function ProposalCard({
   proposal: ProposalWithTime;
 }) {
   const [status, setStatus] = useState<Proposal["status"]>(proposal.status);
-  const [busy, setBusy] = useState(false);
+  const queryClient = useQueryClient();
+  const decisionMutation = useMutation({
+    mutationFn: (decision: "approved" | "denied") =>
+      decideProposal(runId, proposal.id, decision),
+    onSuccess: async (_, decision) => {
+      setStatus(decision);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.events(runId) }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.report(runId) }),
+      ]);
+    },
+  });
 
   const decide = async (decision: "approved" | "denied") => {
-    setBusy(true);
-    try {
-      await decideProposal(runId, proposal.id, decision);
-      setStatus(decision); // optimistic in mock mode; real mode confirms via events
-    } finally {
-      setBusy(false);
-    }
+    await decisionMutation.mutateAsync(decision);
   };
 
   const dot = statusDot[status];
@@ -109,13 +116,13 @@ function ProposalCard({
             <Button
               size="sm"
               variant="outline"
-              disabled={busy}
+              disabled={decisionMutation.isPending}
               onClick={() => decide("denied")}
               className="text-bad"
             >
               Deny
             </Button>
-            <Button size="sm" disabled={busy} onClick={() => decide("approved")}>
+            <Button size="sm" disabled={decisionMutation.isPending} onClick={() => decide("approved")}>
               Approve
             </Button>
           </span>

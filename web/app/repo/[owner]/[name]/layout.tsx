@@ -6,20 +6,19 @@
 import {
   use,
   useCallback,
-  useEffect,
   useMemo,
   useState,
   type ReactNode,
 } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { NewReviewDialog } from "@/components/new-review-dialog";
 import { RepoSidebar } from "@/components/repo-sidebar";
 import { RepoShellContext, type Crumb } from "@/components/repo-shell";
-import { getBranches, getRepo } from "@/lib/api";
+import { queryKeys, useBranchesQuery, useRepoQuery } from "@/lib/queries";
 import { cn } from "@/lib/utils";
-import type { BranchInfo, RepoInfo } from "@/lib/types";
 
 export default function RepoLayout({
   children,
@@ -30,25 +29,27 @@ export default function RepoLayout({
   const base = `/repo/${owner}/${name}`;
   const pathname = usePathname();
 
-  const [repo, setRepo] = useState<RepoInfo | null>(null);
-  const [branches, setBranches] = useState<BranchInfo[]>([]);
+  const queryClient = useQueryClient();
+  const { data: repoData } = useRepoQuery(repoName);
+  const { data: branchesData } = useBranchesQuery(repoName);
+  const repo = repoData ?? null;
+  const branches = useMemo(() => branchesData ?? [], [branchesData]);
   const [crumbs, setCrumbs] = useState<Crumb[] | null>(null);
   const [topbarRight, setTopbarRight] = useState<ReactNode | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [defaultHead, setDefaultHead] = useState<string | undefined>(undefined);
-  const [runsVersion, setRunsVersion] = useState(0);
-
-  useEffect(() => {
-    getRepo(repoName).then((r) => setRepo(r ?? null));
-    getBranches(repoName).then(setBranches);
-  }, [repoName]);
 
   const openNewReview = useCallback((head?: string) => {
     setDefaultHead(head);
     setDialogOpen(true);
   }, []);
 
-  const refreshRuns = useCallback(() => setRunsVersion((v) => v + 1), []);
+  const refreshRuns = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: queryKeys.runs(repoName) });
+    queryClient.invalidateQueries({
+      queryKey: [...queryKeys.all, "branches", repoName],
+    });
+  }, [queryClient, repoName]);
 
   const shell = useMemo(
     () => ({
@@ -58,9 +59,8 @@ export default function RepoLayout({
       setCrumbs,
       setTopbarRight,
       refreshRuns,
-      runsVersion,
     }),
-    [repo, branches, openNewReview, refreshRuns, runsVersion],
+    [repo, branches, openNewReview, refreshRuns],
   );
 
   // Default extra crumbs from the path: branch and review ids render mono.
@@ -89,7 +89,7 @@ export default function RepoLayout({
         <header className="flex items-center justify-between gap-3 border-b border-border-soft px-4 py-2">
           <nav className="flex min-w-0 items-center gap-2 text-[13px]">
             <Link href="/" className="font-semibold text-foreground">
-              Atlas
+              inferval
             </Link>
             <span className="text-faint">/</span>
             <Link
