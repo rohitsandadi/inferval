@@ -1,9 +1,17 @@
 <h1 align="center">inferval</h1>
 
 <p align="center">
-  <video src="https://github.com/rohitsandadi/inferval/raw/main/infervaldemo.mp4" controls muted loop width="840">
-    <a href="https://github.com/rohitsandadi/inferval/raw/main/infervaldemo.mp4">Watch the demo</a>
-  </video>
+  <a href="https://github.com/rohitsandadi/inferval/raw/main/infervaldemo.mp4">
+    <img src="docs/assets/demo-poster.png" alt="Inferval demo" width="840">
+  </a>
+</p>
+
+<p align="center">
+  <a href="https://github.com/rohitsandadi/inferval/raw/main/infervaldemo.mp4"><b>Watch the demo</b></a>
+  &nbsp;·&nbsp;
+  <a href="https://inferval.vercel.app">Dashboard</a>
+  &nbsp;·&nbsp;
+  <a href="docs/mcp.md">MCP server</a>
 </p>
 
 ---
