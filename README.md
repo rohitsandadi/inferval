@@ -1,4 +1,12 @@
-# inferval
+<h1 align="center">inferval</h1>
+
+<p align="center">
+  <video src="https://github.com/rohitsandadi/inferval/raw/main/infervaldemo.mp4" controls muted loop width="840">
+    <a href="https://github.com/rohitsandadi/inferval/raw/main/infervaldemo.mp4">Watch the demo</a>
+  </video>
+</p>
+
+---
 
 Inferval verifies performance and behavior changes in inference code on real
 GPUs. It compares a base revision with a candidate under the same hardware,
@@ -58,8 +66,3 @@ deployment.
 More detail is available in [the architecture notes](docs/ARCHITECTURE.md),
 [implementation notes](docs/IMPLEMENTATION.md), and
 [MCP setup guide](docs/mcp.md).
-
-## Team
-
-Built at the Greptile hackathon by Bhavya Mehrotra, Rohit Sandadi,
-Sahith ([@sahith-p](https://github.com/sahith-p)), and Yogya Mehrotra.
