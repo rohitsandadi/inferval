@@ -57,12 +57,26 @@ def run_controller(spec: dict) -> dict:
               volumes={"/runs": runs, "/cache": cache},
               secrets=[openrouter], timeout=900)
 def chat_turn(chat_id: str, text: str, directive: bool = False) -> dict:
+    try:  # a warm container's mount is stale; the session was just written
+        runs.reload()
+    except Exception:
+        pass
     try:  # session module lands in parallel; a broken import must not crash
         from atlas.session.loop import run_turn
     except Exception as e:
         return {"chat": chat_id, "ok": False,
                 "error": f"session module unavailable: {e}"}
-    return run_turn(chat_id, "/runs", text, volume=runs, directive=directive)
+    try:
+        return run_turn(chat_id, "/runs", text, volume=runs, directive=directive)
+    except Exception as e:  # never die invisibly: leave an error event behind
+        try:
+            from atlas.referee.events import append_event
+            append_event("/runs/chats", chat_id, "system", "error",
+                         {"error": f"turn crashed: {e}"[:2000]})
+            runs.commit()
+        except Exception:
+            pass
+        return {"chat": chat_id, "ok": False, "error": str(e)[:500]}
 
 
 @app.function(image=CONTROLLER_IMAGE,

@@ -39,6 +39,17 @@ def _default_fetch_pr(repo_name: str, number: int, cache_dir: str) -> dict:
 spawn_turn = _default_spawn_turn
 fetch_pr = _default_fetch_pr
 
+def _commit_volume() -> None:
+    """Publish session writes to every container before a worker is spawned
+    to read them — an uncommitted meta.json is invisible to the turn function
+    and the turn dies before its first event (the silent-review_pr bug)."""
+    try:
+        import modal
+        modal.Volume.from_name(VOLUME_RUNS).commit()
+    except Exception:
+        pass
+
+
 _last_reload = 0.0
 
 
@@ -182,6 +193,7 @@ def create_session(name: str, body: dict):
             "status": "created"}
     with open(os.path.join(d, "meta.json"), "w") as f:
         json.dump(meta, f)
+    _commit_volume()
     return {"session": chat_id}
 
 

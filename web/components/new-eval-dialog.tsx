@@ -135,11 +135,18 @@ export function NewEvalDialog({
     return Number.isInteger(n) && n >= 1;
   });
 
-  const canCreate =
-    name.trim() !== "" &&
-    knobsValid &&
-    checks.length > 0 &&
-    checks.every((c) => c.threshold.trim() !== "");
+  // Named so the disabled button can say why instead of just being grey.
+  const missing =
+    name.trim() === ""
+      ? "name required"
+      : !knobsValid
+        ? "scenario numbers must be whole numbers of at least 1"
+        : checks.length === 0
+          ? "at least one check required"
+          : checks.some((c) => c.threshold.trim() === "")
+            ? "every check needs a threshold"
+            : null;
+  const canCreate = missing === null;
 
   const create = async () => {
     const spec: EvalSpec = {
@@ -315,6 +322,9 @@ export function NewEvalDialog({
         )}
 
         {error && <p className="text-[13px] text-bad">{error}</p>}
+        {!error && missing && (
+          <p className="font-mono text-[12px] text-faint">{missing}</p>
+        )}
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
